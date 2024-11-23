@@ -29,7 +29,7 @@ def initModel():
             print(request.json)
 
             # Create the model using the parameters sent by the application
-            cityModel = CityModel()
+            cityModel = CityModel(5)
 
             # Return a message to saying that the model was created successfully
             return jsonify({"message":"Parameters recieved, model initiated.", "width": cityModel.width, "height": cityModel.height})
