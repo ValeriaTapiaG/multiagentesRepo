@@ -11,7 +11,7 @@ class CityModel(Model):
         Args:
             N: Number of agents in the simulation
     """
-    def __init__(self):
+    def __init__(self, N):
 
         # Load the map dictionary. The dictionary maps the characters in the map file to the corresponding agent.
         dataDictionary = json.load(open("city_files/mapDictionary.json"))
