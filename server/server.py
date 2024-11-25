@@ -73,6 +73,25 @@ def getObstacles():
         except Exception as e:
             print(e)
             return jsonify({"message":"Error with obstacle positions"}), 500
+        
+@app.route('/getDestinations', methods=['GET'])
+@cross_origin()
+def getDestinations():
+    global cityModel
+
+    if request.method == 'GET':
+        try:
+            destinationPositions = []
+            for content, (x, z) in cityModel.grid.coord_iter():
+                for agent in content:
+                    if isinstance(agent, Destination):
+                        destinationPositions.append({
+                            "id": str(agent.unique_id), "x": x, "y": 1, "z": z})
+            return jsonify({'positions': destinationPositions})
+        except Exception as e:
+            print(e)
+            return jsonify({"message": "Error with destination positions"}), 500
+
 
 # This route will be used to update the model
 @app.route('/update', methods=['GET'])
