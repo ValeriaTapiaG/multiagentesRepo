@@ -49,9 +49,10 @@ const agent_server_uri = "http://localhost:8585/";
 // Initialize arrays to store agents and obstacles
 const agents = [];
 const obstacles = [];
+const destinations = [];
 
 // Initialize WebGL-related variables
-let gl, programInfo, agentArrays, obstacleArrays, agentsBufferInfo, obstaclesBufferInfo, agentsVao, obstaclesVao;
+let gl, programInfo, agentArrays, obstacleArrays, destinationsArrays, agentsBufferInfo, obstaclesBufferInfo, destinationsBufferInfo, agentsVao, obstaclesVao, destinationsVao;
 
 // Define the camera position
 let cameraPosition = {x:0, y:25, z:25};
@@ -77,14 +78,20 @@ async function main() {
   // Generate the agent and obstacle data
   agentArrays = await loadObj("./car.obj");
   obstacleArrays = await loadObj("./building.obj");
+  destinationsArrays = await loadObj("./destination.obj");
+
 
   // Create buffer information from the agent and obstacle data
   agentsBufferInfo = twgl.createBufferInfoFromArrays(gl, agentArrays);
   obstaclesBufferInfo = twgl.createBufferInfoFromArrays(gl, obstacleArrays);
+  destinationsBufferInfo = twgl.createBufferInfoFromArrays(gl, destinationsArrays);
+
 
   // Create vertex array objects (VAOs) from the buffer information
   agentsVao = twgl.createVAOFromBufferInfo(gl, programInfo, agentsBufferInfo);
   obstaclesVao = twgl.createVAOFromBufferInfo(gl, programInfo, obstaclesBufferInfo);
+  destinationsVao = twgl.createVAOFromBufferInfo(gl, programInfo, destinationsBufferInfo);
+
 
   // Set up the user interface
   await setupUI();
@@ -95,9 +102,10 @@ async function main() {
   // Get the agents and obstacles
   await getAgents();
   await getObstacles();
+  await getDestinations();
 
   // Draw the scene
-  await drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstaclesVao, obstaclesBufferInfo);
+  await drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstaclesVao, obstaclesBufferInfo, destinationsVao, destinationsBufferInfo);
 }
 
 /*
@@ -201,6 +209,33 @@ async function getObstacles() {
   }
 }
 
+async function getDestinations() {
+  try {
+      const response = await fetch(agent_server_uri + "getDestinations");
+      if (response.ok) {
+          const result = await response.json();
+          const positions = result.positions;
+
+          if (destinations.length === 0) {
+              // Inicializa la lista de destinos si está vacía
+              for (const destination of positions) {
+                  destinations.push(new Object3D(destination.id, [destination.x, destination.y, destination.z]));
+              }
+          } else {
+              // Actualiza las posiciones de los destinos existentes
+              for (const destination of positions) {
+                  const currentDestination = destinations.find(d => d.id === destination.id);
+                  if (currentDestination) {
+                      currentDestination.position = [destination.x, destination.y, destination.z];
+                  }
+              }
+          }
+      }
+  } catch (error) {
+      console.error("Error fetching destinations:", error);
+  }
+}
+
 /*
  * Updates the agent positions by sending a request to the agent server.
  */
@@ -233,7 +268,7 @@ async function update() {
  * @param {WebGLVertexArrayObject} obstaclesVao - The vertex array object for obstacles.
  * @param {Object} obstaclesBufferInfo - The buffer information for obstacles.
  */
-async function drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstaclesVao, obstaclesBufferInfo) {
+async function drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstaclesVao, obstaclesBufferInfo, destinationsVao, destinationsBufferInfo) {
     // Resize the canvas to match the display size
     twgl.resizeCanvasToDisplaySize(gl.canvas);
 
@@ -260,6 +295,8 @@ async function drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstacles
     drawAgents(distance, agentsVao, agentsBufferInfo, viewProjectionMatrix)    
     // Draw the obstacles
     drawObstacles(distance, obstaclesVao, obstaclesBufferInfo, viewProjectionMatrix)
+    // Draw the obstacles
+    drawDestinations(distance, destinationsVao, destinationsBufferInfo, viewProjectionMatrix)
 
     // Increment the frame count
     frameCount++
@@ -271,7 +308,7 @@ async function drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstacles
     } 
 
     // Request the next frame
-    requestAnimationFrame(()=>drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstaclesVao, obstaclesBufferInfo))
+    requestAnimationFrame(()=>drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstaclesVao, obstaclesBufferInfo,  destinationsVao, destinationsBufferInfo))
 }
 
 /*
@@ -351,6 +388,28 @@ function drawObstacles(distance, obstaclesVao, obstaclesBufferInfo, viewProjecti
     }
 }
 
+function drawDestinations(distance, destinationsVao, destinationsBufferInfo, viewProjectionMatrix) {
+  gl.bindVertexArray(destinationsVao);
+
+  for (const destination of destinations) {
+      const translation = twgl.v3.create(...destination.position);
+      const scale = twgl.v3.create(...destination.scale);
+
+      destination.matrix = twgl.m4.translate(viewProjectionMatrix, translation);
+      destination.matrix = twgl.m4.rotateX(destination.matrix, destination.rotation[0]);
+      destination.matrix = twgl.m4.rotateY(destination.matrix, destination.rotation[1]);
+      destination.matrix = twgl.m4.rotateZ(destination.matrix, destination.rotation[2]);
+      destination.matrix = twgl.m4.scale(destination.matrix, scale);
+
+      const uniforms = {
+          u_matrix: destination.matrix,
+      };
+
+      twgl.setUniforms(programInfo, uniforms);
+      twgl.drawBufferInfo(gl, destinationsBufferInfo);
+  }
+}
+
 /*
  * Sets up the world view by creating the view-projection matrix.
  * 
@@ -418,7 +477,7 @@ async function setupUI() {
             // Update the camera position when the slider value changes
             cameraPosition.z = value
         });
-        await drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstaclesVao, obstaclesBufferInfo)
+        await drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstaclesVao, obstaclesBufferInfo, destinationsVao, destinationsBufferInfo)
 
 }
 
