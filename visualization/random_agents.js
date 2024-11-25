@@ -79,21 +79,21 @@ async function main() {
   obstacleArrays = await loadObj("./building.obj");
 
   // Create buffer information from the agent and obstacle data
-  // agentsBufferInfo = twgl.createBufferInfoFromArrays(gl, agentArrays);
+  agentsBufferInfo = twgl.createBufferInfoFromArrays(gl, agentArrays);
   obstaclesBufferInfo = twgl.createBufferInfoFromArrays(gl, obstacleArrays);
 
   // Create vertex array objects (VAOs) from the buffer information
-  // agentsVao = twgl.createVAOFromBufferInfo(gl, programInfo, agentsBufferInfo);
+  agentsVao = twgl.createVAOFromBufferInfo(gl, programInfo, agentsBufferInfo);
   obstaclesVao = twgl.createVAOFromBufferInfo(gl, programInfo, obstaclesBufferInfo);
 
   // Set up the user interface
-  setupUI();
+  await setupUI();
 
   // Initialize the agents model
   await initAgentsModel();
 
   // Get the agents and obstacles
-  // await getAgents();
+  await getAgents();
   await getObstacles();
 
   // Draw the scene
@@ -257,7 +257,7 @@ async function drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstacles
     const distance = 1
 
     // Draw the agents
-    // drawAgents(distance, agentsVao, agentsBufferInfo, viewProjectionMatrix)    
+    drawAgents(distance, agentsVao, agentsBufferInfo, viewProjectionMatrix)    
     // Draw the obstacles
     drawObstacles(distance, obstaclesVao, obstaclesBufferInfo, viewProjectionMatrix)
 
@@ -391,7 +391,7 @@ function setupWorldView(gl) {
 /*
  * Sets up the user interface (UI) for the camera position.
  */
-function setupUI() {
+async function setupUI() {
     // Create a new GUI instance
     const gui = new GUI();
 
@@ -418,6 +418,8 @@ function setupUI() {
             // Update the camera position when the slider value changes
             cameraPosition.z = value
         });
+        await drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstaclesVao, obstaclesBufferInfo)
+
 }
 
 function generateData(size) {

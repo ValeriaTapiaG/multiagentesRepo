@@ -4,13 +4,6 @@ from model import CityModel, Car, Traffic_Light, Destination, Obstacle, Road
 
 # Size of the board:
 cityModel = None
-# width = 0
-# height = 0
-
-# with open('city_files/2022_base.txt') as baseFile:
-#     lines = baseFile.readlines()
-#     width = len(lines[0])-1
-#     height = len(lines)
 
 # This application will be used to interact with WebGL
 app = Flask("Traffic example")
@@ -49,16 +42,17 @@ def getAgents():
         # Note that the positions are sent as a list of dictionaries, where each dictionary has the id and position of an agent.
         # The y coordinate is set to 1, since the agents are in a 3D world. The z coordinate corresponds to the row (y coordinate) of the grid in mesa.
         try:
-            agentPositions = [
-                {"id": str(a.unique_id), "x": x, "y":1, "z":z}
-                for a, (x, z) in cityModel.grid.coord_iter()
-                if isinstance(a, Car)
-            ]
-
-            return jsonify({'positions':agentPositions})
+            agentPositions = []
+            for content, (x, z) in cityModel.grid.coord_iter():
+                for agent in content: 
+                    if isinstance(agent, Car):
+                        agentPositions.append({"id": str(agent.unique_id), "x": x, "y": 1, "z": z})
+            return jsonify({'positions': agentPositions})
         except Exception as e:
             print(e)
-            return jsonify({"message":"Error with the agent positions"}), 500
+            return jsonify({"message": "Error with agent positions"}), 500
+
+
 
 # This route will be used to get the positions of the obstacles
 @app.route('/getObstacles', methods=['GET'])
