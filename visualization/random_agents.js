@@ -54,7 +54,7 @@ const obstacles = [];
 let gl, programInfo, agentArrays, obstacleArrays, agentsBufferInfo, obstaclesBufferInfo, agentsVao, obstaclesVao;
 
 // Define the camera position
-let cameraPosition = {x:0, y:9, z:9};
+let cameraPosition = {x:0, y:25, z:25};
 
 // Initialize the frame count
 let frameCount = 0;
@@ -75,8 +75,8 @@ async function main() {
   programInfo = twgl.createProgramInfo(gl, [vsGLSL, fsGLSL]);
 
   // Generate the agent and obstacle data
-  agentArrays = generateData(1);
-  obstacleArrays = generateObstacleData(1);
+  agentArrays = await loadObj("./car.obj");
+  obstacleArrays = await loadObj("./building.obj");
 
   // Create buffer information from the agent and obstacle data
   // agentsBufferInfo = twgl.createBufferInfoFromArrays(gl, agentArrays);
@@ -514,7 +514,7 @@ function generateData(size) {
     return arrays;
 }
 
-function generateObstacleData(size){
+function generateObstacleData(size){ //aqui pongo lo del .obj
 
     let arrays =
     {
@@ -606,6 +606,86 @@ function generateObstacleData(size){
             }
     };
     return arrays;
+}
+
+async function loadObj(url) {
+  let obj = {
+      a_position: {
+          numComponents: 3,
+          data: [ ]
+      },
+      a_color: {
+          numComponents: 4,
+          data: [ ]
+      },
+      a_normal: {
+          numComponents: 3,
+          data: [ ]
+      },
+      a_texCoord: {
+          numComponents: 2,
+          data: [ ]
+      }
+  };
+  try {
+      const response = await fetch(url);
+      if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const content = await response.text();
+      const vertices = [];
+      const normals = [];
+      const texCoords = [];
+      const faces = [];
+      const lines = content.split('\n');
+      for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (trimmedLine.startsWith('v ')) {
+              const [, x, y, z] = trimmedLine.split(/\s+/).map(Number);
+              vertices.push([x, y, z]);
+          } else if (trimmedLine.startsWith('vn ')) {
+              const [, nx, ny, nz] = trimmedLine.split(/\s+/).map(Number);
+              normals.push([nx, ny, nz]);
+          } else if (trimmedLine.startsWith('vt ')) {
+              const [, u, v] = trimmedLine.split(/\s+/).map(Number);
+              texCoords.push([u, v]);
+          } else if (trimmedLine.startsWith('f ')) {
+              const faceData = trimmedLine
+                  .substring(2)
+                  .split(/\s+/)
+                  .map((vertex) => {
+                      const [vIdx, tIdx, nIdx] = vertex.split('/').map((i) => parseInt(i) - 1);
+                      return { vIdx, tIdx, nIdx };
+                  });
+              faces.push(faceData);
+          }
+      }
+      for (const face of faces) {
+          for (const vertex of face) {
+              const position = vertices[vertex.vIdx];
+              obj.a_position.data.push(...position);
+              if (vertex.nIdx !== undefined && normals[vertex.nIdx]) {
+                  obj.a_normal.data.push(...normals[vertex.nIdx]);
+              } else {
+                  obj.a_normal.data.push(0, 0, 0);
+              }
+              if (vertex.tIdx !== undefined && texCoords[vertex.tIdx]) {
+                  obj.a_texCoord.data.push(...texCoords[vertex.tIdx]);
+              } else {
+                  obj.a_texCoord.data.push(0, 0);
+              }
+              obj.a_color.data.push(1.0, 1.0, 1.0, 1.0);
+          }
+      }
+      return {
+          a_position: obj.a_position,
+          a_normal: obj.a_normal,
+          a_color: obj.a_color,
+          a_texCoord: obj.a_texCoord,
+      }
+  } catch (error) {
+      console.error('Error reading the file', error);
+  }
 }
 
 main()
