@@ -3,34 +3,8 @@
 import * as twgl from 'twgl.js';
 import GUI from 'lil-gui';
 
-// Define the vertex shader code, using GLSL 3.00
-const vsGLSL = `#version 300 es
-in vec4 a_position;
-in vec4 a_color;
-
-uniform mat4 u_transforms;
-uniform mat4 u_matrix;
-
-out vec4 v_color;
-
-void main() {
-gl_Position = u_matrix * a_position;
-v_color = a_color;
-}
-`;
-
-// Define the fragment shader code, using GLSL 3.00
-const fsGLSL = `#version 300 es
-precision highp float;
-
-in vec4 v_color;
-
-out vec4 outColor;
-
-void main() {
-outColor = v_color;
-}
-`;
+import vsGLSL from './shaders/vs_phong.glsl?raw'
+import fsGLSL from './shaders/fs_phong.glsl?raw'
 
 // Define the Object3D class to represent 3D objects
 class Object3D {
@@ -55,7 +29,8 @@ const destinations = [];
 let gl, programInfo, agentArrays, obstacleArrays, destinationsArrays, agentsBufferInfo, obstaclesBufferInfo, destinationsBufferInfo, agentsVao, obstaclesVao, destinationsVao;
 
 // Define the camera position
-let cameraPosition = {x:0, y:25, z:25};
+let cameraPosition = {x:0, y: 40, z: 0};
+
 
 // Initialize the frame count
 let frameCount = 0;
@@ -66,6 +41,17 @@ let data = {
   width: 100,
   height: 100
 };
+
+const lightPosition = [15, 15, 15]; // Sigue siendo vec3
+const ambientLight = [0.3, 0.3, 0.3, 1.0]; // Ahora es vec4
+const diffuseLight = [1.0, 1.0, 1.0, 1.0]; // vec4
+const specularLight = [1.0, 1.0, 1.0, 1.0]; // vec4
+
+const ambientColor = [0.5, 0.5, 0.5, 1.0]; // vec4
+const diffuseColor = [0.8, 0.0, 0.0, 1.0]; // vec4
+const specularColor = [1.0, 1.0, 1.0, 1.0]; // vec4
+const shininess = 32.0; // Sigue siendo float
+
 
 // Main function to initialize and run the application
 async function main() {
@@ -319,35 +305,39 @@ async function drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstacles
  * @param {Object} agentsBufferInfo - The buffer information for agents.
  * @param {Float32Array} viewProjectionMatrix - The view-projection matrix.
  */
-function drawAgents(distance, agentsVao, agentsBufferInfo, viewProjectionMatrix){
-    // Bind the vertex array object for agents
-    gl.bindVertexArray(agentsVao);
+function drawAgents(distance, agentsVao, agentsBufferInfo, viewProjectionMatrix) {
+  gl.bindVertexArray(agentsVao);
 
-    // Iterate over the agents
-    for(const agent of agents){
-
-      // Create the agent's transformation matrix
+  for (const agent of agents) {
       const cube_trans = twgl.v3.create(...agent.position);
       const cube_scale = twgl.v3.create(...agent.scale);
 
-      // Calculate the agent's matrix
-      agent.matrix = twgl.m4.translate(viewProjectionMatrix, cube_trans);
+      agent.matrix = twgl.m4.translate(twgl.m4.identity(), cube_trans);
       agent.matrix = twgl.m4.rotateX(agent.matrix, agent.rotation[0]);
       agent.matrix = twgl.m4.rotateY(agent.matrix, agent.rotation[1]);
       agent.matrix = twgl.m4.rotateZ(agent.matrix, agent.rotation[2]);
       agent.matrix = twgl.m4.scale(agent.matrix, cube_scale);
 
-      // Set the uniforms for the agent
-      let uniforms = {
-          u_matrix: agent.matrix,
-      }
+      const uniforms = {
+        u_world: agent.matrix,
+        u_worldInverseTransform: twgl.m4.transpose(twgl.m4.inverse(agent.matrix)),
+        u_worldViewProjection: twgl.m4.multiply(viewProjectionMatrix, agent.matrix),
+        u_lightWorldPosition: lightPosition,
+        u_ambientLight: ambientLight,
+        u_diffuseLight: diffuseLight,
+        u_specularLight: specularLight,
+        u_ambientColor: ambientColor,
+        u_diffuseColor: diffuseColor,
+        u_specularColor: specularColor,
+        u_shininess: shininess,
+    };
+    
 
-      // Set the uniforms and draw the agent
       twgl.setUniforms(programInfo, uniforms);
       twgl.drawBufferInfo(gl, agentsBufferInfo);
-      
-    }
+  }
 }
+
 
       
 /*
@@ -358,35 +348,45 @@ function drawAgents(distance, agentsVao, agentsBufferInfo, viewProjectionMatrix)
  * @param {Object} obstaclesBufferInfo - The buffer information for obstacles.
  * @param {Float32Array} viewProjectionMatrix - The view-projection matrix.
  */
-function drawObstacles(distance, obstaclesVao, obstaclesBufferInfo, viewProjectionMatrix){
 
+function drawObstacles(distance, obstaclesVao, obstaclesBufferInfo, viewProjectionMatrix) {
+  // Bind the vertex array object for obstacles
+  gl.bindVertexArray(obstaclesVao);
 
-    // Bind the vertex array object for obstacles
-    gl.bindVertexArray(obstaclesVao);
-
-    // Iterate over the obstacles
-    for(const obstacle of obstacles){
+  // Iterate over the obstacles
+  for (const obstacle of obstacles) {
       // Create the obstacle's transformation matrix
       const cube_trans = twgl.v3.create(...obstacle.position);
       const cube_scale = twgl.v3.create(...obstacle.scale);
 
       // Calculate the obstacle's matrix
-      obstacle.matrix = twgl.m4.translate(viewProjectionMatrix, cube_trans);
+      obstacle.matrix = twgl.m4.translate(twgl.m4.identity(), cube_trans);
       obstacle.matrix = twgl.m4.rotateX(obstacle.matrix, obstacle.rotation[0]);
       obstacle.matrix = twgl.m4.rotateY(obstacle.matrix, obstacle.rotation[1]);
       obstacle.matrix = twgl.m4.rotateZ(obstacle.matrix, obstacle.rotation[2]);
       obstacle.matrix = twgl.m4.scale(obstacle.matrix, cube_scale);
 
       // Set the uniforms for the obstacle
-      let uniforms = {
-          u_matrix: obstacle.matrix,
-      }    
+      const uniforms = {
+          u_world: obstacle.matrix, // Cambiado de `object.matrix` a `obstacle.matrix`
+          u_worldInverseTransform: twgl.m4.transpose(twgl.m4.inverse(obstacle.matrix)),
+          u_worldViewProjection: twgl.m4.multiply(viewProjectionMatrix, obstacle.matrix),
+          u_lightWorldPosition: lightPosition,
+          u_ambientLight: ambientLight,
+          u_diffuseLight: diffuseLight,
+          u_specularLight: specularLight,
+          u_ambientColor: ambientColor,
+          u_diffuseColor: diffuseColor,
+          u_specularColor: specularColor,
+          u_shininess: shininess,
+      };
+
       // Set the uniforms and draw the obstacle
       twgl.setUniforms(programInfo, uniforms);
       twgl.drawBufferInfo(gl, obstaclesBufferInfo);
-      
-    }
+  }
 }
+
 
 function drawDestinations(distance, destinationsVao, destinationsBufferInfo, viewProjectionMatrix) {
   gl.bindVertexArray(destinationsVao);
@@ -395,16 +395,27 @@ function drawDestinations(distance, destinationsVao, destinationsBufferInfo, vie
       const translation = twgl.v3.create(...destination.position);
       const scale = twgl.v3.create(...destination.scale);
 
-      destination.matrix = twgl.m4.translate(viewProjectionMatrix, translation);
+      destination.matrix = twgl.m4.translate(twgl.m4.identity(), translation);
       destination.matrix = twgl.m4.rotateX(destination.matrix, destination.rotation[0]);
       destination.matrix = twgl.m4.rotateY(destination.matrix, destination.rotation[1]);
       destination.matrix = twgl.m4.rotateZ(destination.matrix, destination.rotation[2]);
       destination.matrix = twgl.m4.scale(destination.matrix, scale);
-
+      
       const uniforms = {
-          u_matrix: destination.matrix,
-      };
-
+        u_world: destination.matrix,
+        u_worldInverseTransform: twgl.m4.transpose(twgl.m4.inverse(destination.matrix)),
+        u_worldViewProjection: twgl.m4.multiply(viewProjectionMatrix, destination.matrix),
+        u_lightWorldPosition: lightPosition,
+        u_ambientLight: ambientLight,
+        u_diffuseLight: diffuseLight,
+        u_specularLight: specularLight,
+        u_ambientColor: ambientColor,
+        u_diffuseColor: diffuseColor,
+        u_specularColor: specularColor,
+        u_shininess: shininess,
+    };
+    
+    
       twgl.setUniforms(programInfo, uniforms);
       twgl.drawBufferInfo(gl, destinationsBufferInfo);
   }
@@ -417,69 +428,152 @@ function drawDestinations(distance, destinationsVao, destinationsBufferInfo, vie
  * @returns {Float32Array} The view-projection matrix.
  */
 function setupWorldView(gl) {
-    // Set the field of view (FOV) in radians
-    const fov = 45 * Math.PI / 180;
+  // Set the field of view (FOV) in radians
+  const fov = 45 * Math.PI / 180;
 
-    // Calculate the aspect ratio of the canvas
-    const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+  // Calculate the aspect ratio of the canvas
+  const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
 
-    // Create the projection matrix
-    const projectionMatrix = twgl.m4.perspective(fov, aspect, 1, 200);
+  // Create the projection matrix
+  const projectionMatrix = twgl.m4.perspective(fov, aspect, 0.1, 100);
 
-    // Set the target position
-    const target = [data.width/2, 0, data.height/2];
+  // Set the target position (scene center)
+  const target = [data.width / 2, 0, data.height / 2];
+  console.log("Target Position (scene center):", target);
 
-    // Set the up vector
-    const up = [0, 1, 0];
+  // Set the up vector
+  // const up = [0, 1, 0];
+  const up = [0, 0, -1]; // La dirección hacia arriba es -Z, para mirar desde arriba
 
-    // Calculate the camera position
-    const camPos = twgl.v3.create(cameraPosition.x + data.width/2, cameraPosition.y, cameraPosition.z+data.height/2)
+  // Calculate the camera position and convert it to an array
+  const camPos = [cameraPosition.x + target[0], cameraPosition.y, cameraPosition.z + target[2]];
+  console.log("Camera Position:", camPos); // Ahora mostrará un arreglo válido
 
-    // Create the camera matrix
-    const cameraMatrix = twgl.m4.lookAt(camPos, target, up);
+  // Create the camera matrix
+  const cameraMatrix = twgl.m4.lookAt(camPos, target, up);
 
-    // Calculate the view matrix
-    const viewMatrix = twgl.m4.inverse(cameraMatrix);
+  // Calculate the view matrix
+  const viewMatrix = twgl.m4.inverse(cameraMatrix);
 
-    // Calculate the view-projection matrix
-    const viewProjectionMatrix = twgl.m4.multiply(projectionMatrix, viewMatrix);
-    // Return the view-projection matrix
-    return viewProjectionMatrix;
+  // Combine projection and view matrices
+  const viewProjectionMatrix = twgl.m4.multiply(projectionMatrix, viewMatrix);
+
+  // Log the full view-projection matrix
+  console.log("View-Projection Matrix:", Array.from(viewProjectionMatrix));
+
+  // Return the matrix for further use
+  return viewProjectionMatrix;
 }
+
 
 /*
  * Sets up the user interface (UI) for the camera position.
  */
+/*
+ * Sets up the user interface (UI) for the camera, lights, and colors.
+ */
 async function setupUI() {
-    // Create a new GUI instance
-    const gui = new GUI();
+  // Create a new GUI instance
+  const gui = new GUI();
 
-    // Create a folder for the camera position
-    const posFolder = gui.addFolder('Position:')
+  // Camera Position Controls
+  const posFolder = gui.addFolder('Camera Position');
+  posFolder.add(cameraPosition, 'x', -50, 50).onChange(value => {
+      cameraPosition.x = value;
+  });
+  posFolder.add(cameraPosition, 'y', -50, 50).onChange(value => {
+      cameraPosition.y = value;
+  });
+  posFolder.add(cameraPosition, 'z', -50, 50).onChange(value => {
+      cameraPosition.z = value;
+  });
 
-    // Add a slider for the x-axis
-    posFolder.add(cameraPosition, 'x', -50, 50)
-        .onChange( value => {
-            // Update the camera position when the slider value changes
-            cameraPosition.x = value
-        });
+  // Light Controls
+  const lightFolder = gui.addFolder('Light Settings');
+  lightFolder.add(lightPosition, 0, -50, 50).name('Light X').onChange(value => {
+      lightPosition[0] = value;
+  });
+  lightFolder.add(lightPosition, 1, -50, 50).name('Light Y').onChange(value => {
+      lightPosition[1] = value;
+  });
+  lightFolder.add(lightPosition, 2, -50, 50).name('Light Z').onChange(value => {
+      lightPosition[2] = value;
+  });
 
-    // Add a slider for the y-axis
-    posFolder.add( cameraPosition, 'y', -50, 50)
-        .onChange( value => {
-            // Update the camera position when the slider value changes
-            cameraPosition.y = value
-        });
+  const ambientFolder = lightFolder.addFolder('Ambient Light');
+  ambientFolder.add(ambientLight, 0, 0, 1).name('R').onChange(value => {
+      ambientLight[0] = value;
+  });
+  ambientFolder.add(ambientLight, 1, 0, 1).name('G').onChange(value => {
+      ambientLight[1] = value;
+  });
+  ambientFolder.add(ambientLight, 2, 0, 1).name('B').onChange(value => {
+      ambientLight[2] = value;
+  });
 
-    // Add a slider for the z-axis
-    posFolder.add( cameraPosition, 'z', -50, 50)
-        .onChange( value => {
-            // Update the camera position when the slider value changes
-            cameraPosition.z = value
-        });
-        await drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstaclesVao, obstaclesBufferInfo, destinationsVao, destinationsBufferInfo)
+  const diffuseFolder = lightFolder.addFolder('Diffuse Light');
+  diffuseFolder.add(diffuseLight, 0, 0, 1).name('R').onChange(value => {
+      diffuseLight[0] = value;
+  });
+  diffuseFolder.add(diffuseLight, 1, 0, 1).name('G').onChange(value => {
+      diffuseLight[1] = value;
+  });
+  diffuseFolder.add(diffuseLight, 2, 0, 1).name('B').onChange(value => {
+      diffuseLight[2] = value;
+  });
 
+  const specularFolder = lightFolder.addFolder('Specular Light');
+  specularFolder.add(specularLight, 0, 0, 1).name('R').onChange(value => {
+      specularLight[0] = value;
+  });
+  specularFolder.add(specularLight, 1, 0, 1).name('G').onChange(value => {
+      specularLight[1] = value;
+  });
+  specularFolder.add(specularLight, 2, 0, 1).name('B').onChange(value => {
+      specularLight[2] = value;
+  });
+
+  // Material Colors
+  const colorFolder = gui.addFolder('Material Colors');
+  const ambientColorFolder = colorFolder.addFolder('Ambient Color');
+  ambientColorFolder.add(ambientColor, 0, 0, 1).name('R').onChange(value => {
+      ambientColor[0] = value;
+  });
+  ambientColorFolder.add(ambientColor, 1, 0, 1).name('G').onChange(value => {
+      ambientColor[1] = value;
+  });
+  ambientColorFolder.add(ambientColor, 2, 0, 1).name('B').onChange(value => {
+      ambientColor[2] = value;
+  });
+
+  const diffuseColorFolder = colorFolder.addFolder('Diffuse Color');
+  diffuseColorFolder.add(diffuseColor, 0, 0, 1).name('R').onChange(value => {
+      diffuseColor[0] = value;
+  });
+  diffuseColorFolder.add(diffuseColor, 1, 0, 1).name('G').onChange(value => {
+      diffuseColor[1] = value;
+  });
+  diffuseColorFolder.add(diffuseColor, 2, 0, 1).name('B').onChange(value => {
+      diffuseColor[2] = value;
+  });
+
+  const specularColorFolder = colorFolder.addFolder('Specular Color');
+  specularColorFolder.add(specularColor, 0, 0, 1).name('R').onChange(value => {
+      specularColor[0] = value;
+  });
+  specularColorFolder.add(specularColor, 1, 0, 1).name('G').onChange(value => {
+      specularColor[1] = value;
+  });
+  specularColorFolder.add(specularColor, 2, 0, 1).name('B').onChange(value => {
+      specularColor[2] = value;
+  });
+
+  // Render Scene After UI Updates
+  gui.onChange(() => {
+      drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstaclesVao, obstaclesBufferInfo, destinationsVao, destinationsBufferInfo);
+  });
 }
+
 
 function generateData(size) {
     let arrays =
