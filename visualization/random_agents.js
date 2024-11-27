@@ -8,11 +8,12 @@ import fsGLSL from './shaders/fs_phong.glsl?raw'
 
 // Define the Object3D class to represent 3D objects
 class Object3D {
-  constructor(id, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
+  constructor(id, position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1], color = [1.0, 1.0, 1.0, 1.0]) {
     this.id = id;
     this.position = position;
     this.rotation = rotation;
     this.scale = scale;
+    this.color = color; // Color específico del objeto
     this.matrix = twgl.m4.create();
   }
 }
@@ -110,7 +111,7 @@ async function initAgentsModel() {
     if(response.ok){
       // Parse the response as JSON and log the message
       let result = await response.json()
-      console.log(result)
+      // console.log(result)
       data.width = result.width
       data.height = result.height
     }
@@ -127,35 +128,41 @@ async function initAgentsModel() {
 async function getAgents() {
   try {
     // Send a GET request to the agent server to retrieve the agent positions
-    let response = await fetch(agent_server_uri + "getAgents") 
+    let response = await fetch(agent_server_uri + "getAgents");
 
     // Check if the response was successful
-    if(response.ok){
+    if (response.ok) {
       // Parse the response as JSON
-      let result = await response.json()
+      let result = await response.json();
 
       // Log the agent positions
-      console.log(result.positions)
+      // console.log(result.positions);
 
       // Check if the agents array is empty
-      if(agents.length == 0){
+      if (agents.length === 0) {
         // Create new agents and add them to the agents array
         for (const agent of result.positions) {
-          const newAgent = new Object3D(agent.id, [agent.x, agent.y, agent.z])
-          agents.push(newAgent)
+          const color = [0.0, 1.0, 0.0, 1.0]; // Verde claro para agentes
+          const newAgent = new Object3D(agent.id, [agent.x, agent.y, agent.z], [0, 0, 0], [1, 1, 1], color);
+          agents.push(newAgent);
         }
         // Log the agents array
-        console.log("Agents:", agents)
+        // console.log("Agents:", agents);
 
       } else {
         // Update the positions of existing agents
         for (const agent of result.positions) {
-          const current_agent = agents.find((object3d) => object3d.id == agent.id)
+          const current_agent = agents.find((object3d) => object3d.id === agent.id);
 
           // Check if the agent exists in the agents array
-          if(current_agent != undefined){
+          if (current_agent !== undefined) {
             // Update the agent's position
-            current_agent.position = [agent.x, agent.y, agent.z]
+            current_agent.position = [agent.x, agent.y, agent.z];
+          } else {
+            // Si es un nuevo agente, añadirlo con color
+            const color = [Math.random(), Math.random(), Math.random(), 1.0]; // Color aleatorio
+            const newAgent = new Object3D(agent.id, [agent.x, agent.y, agent.z], [0, 0, 0], [1, 1, 1], color);
+            agents.push(newAgent);
           }
         }
       }
@@ -163,7 +170,7 @@ async function getAgents() {
 
   } catch (error) {
     // Log any errors that occur during the request
-    console.log(error) 
+    console.log("Error fetching agents:", error);
   }
 }
 
@@ -172,53 +179,42 @@ async function getAgents() {
  */
 async function getObstacles() {
   try {
-    // Send a GET request to the agent server to retrieve the obstacle positions
-    let response = await fetch(agent_server_uri + "getObstacles") 
+    const response = await fetch(agent_server_uri + "getObstacles");
 
-    // Check if the response was successful
-    if(response.ok){
-      // Parse the response as JSON
-      let result = await response.json()
+    if (response.ok) {
+      const result = await response.json();
+      obstacles.length = 0; // Limpia el arreglo para evitar duplicados
 
-      // Create new obstacles and add them to the obstacles array
       for (const obstacle of result.positions) {
-        const newObstacle = new Object3D(obstacle.id, [obstacle.x, obstacle.y, obstacle.z])
-        obstacles.push(newObstacle)
+        const color = [0.5, 0.5, 0.5, 1.0]; // Gris oscuro
+        const newObstacle = new Object3D(obstacle.id, [obstacle.x, obstacle.y, obstacle.z], [0, 0, 0], [1, 1, 1], color);
+        obstacles.push(newObstacle);
       }
-      // Log the obstacles array
-      console.log("Obstacles:", obstacles)
+      // console.log("Obstacles:", obstacles);
     }
-
   } catch (error) {
-    // Log any errors that occur during the request
-    console.log(error) 
+    console.log("Error fetching obstacles:", error);
   }
 }
 
+
 async function getDestinations() {
   try {
-      const response = await fetch(agent_server_uri + "getDestinations");
-      if (response.ok) {
-          const result = await response.json();
-          const positions = result.positions;
+    const response = await fetch(agent_server_uri + "getDestinations");
 
-          if (destinations.length === 0) {
-              // Inicializa la lista de destinos si está vacía
-              for (const destination of positions) {
-                  destinations.push(new Object3D(destination.id, [destination.x, destination.y, destination.z]));
-              }
-          } else {
-              // Actualiza las posiciones de los destinos existentes
-              for (const destination of positions) {
-                  const currentDestination = destinations.find(d => d.id === destination.id);
-                  if (currentDestination) {
-                      currentDestination.position = [destination.x, destination.y, destination.z];
-                  }
-              }
-          }
+    if (response.ok) {
+      const result = await response.json();
+      destinations.length = 0; // Limpia el arreglo para evitar duplicados
+
+      for (const destination of result.positions) {
+        const color = [0.0, 0.0, 1.0, 1.0]; // Azul claro
+        const newDestination = new Object3D(destination.id, [destination.x, destination.y, destination.z], [0, 0, 0], [1, 1, 1], color);
+        destinations.push(newDestination);
       }
+      // console.log("Destinations:", destinations);
+    }
   } catch (error) {
-      console.error("Error fetching destinations:", error);
+    console.error("Error fetching destinations:", error);
   }
 }
 
@@ -235,7 +231,7 @@ async function update() {
       // Retrieve the updated agent positions
       await getAgents()
       // Log a message indicating that the agents have been updated
-      console.log("Updated agents")
+      // console.log("Updated agents")
     }
 
   } catch (error) {
@@ -290,7 +286,7 @@ async function drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstacles
     // Update the scene every 30 frames
     if(frameCount%30 == 0){
       frameCount = 0
-      // await update()
+      await update()
     } 
 
     // Request the next frame
@@ -307,18 +303,18 @@ async function drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstacles
  */
 function drawAgents(distance, agentsVao, agentsBufferInfo, viewProjectionMatrix) {
   gl.bindVertexArray(agentsVao);
-
+  
   for (const agent of agents) {
-      const cube_trans = twgl.v3.create(...agent.position);
-      const cube_scale = twgl.v3.create(...agent.scale);
+    const cube_trans = twgl.v3.create(...agent.position);
+    const cube_scale = twgl.v3.create(...agent.scale);
 
-      agent.matrix = twgl.m4.translate(twgl.m4.identity(), cube_trans);
-      agent.matrix = twgl.m4.rotateX(agent.matrix, agent.rotation[0]);
-      agent.matrix = twgl.m4.rotateY(agent.matrix, agent.rotation[1]);
-      agent.matrix = twgl.m4.rotateZ(agent.matrix, agent.rotation[2]);
-      agent.matrix = twgl.m4.scale(agent.matrix, cube_scale);
+    agent.matrix = twgl.m4.translate(twgl.m4.identity(), cube_trans);
+    agent.matrix = twgl.m4.rotateX(agent.matrix, agent.rotation[0]);
+    agent.matrix = twgl.m4.rotateY(agent.matrix, agent.rotation[1]);
+    agent.matrix = twgl.m4.rotateZ(agent.matrix, agent.rotation[2]);
+    agent.matrix = twgl.m4.scale(agent.matrix, cube_scale);
 
-      const uniforms = {
+    const uniforms = {
         u_world: agent.matrix,
         u_worldInverseTransform: twgl.m4.transpose(twgl.m4.inverse(agent.matrix)),
         u_worldViewProjection: twgl.m4.multiply(viewProjectionMatrix, agent.matrix),
@@ -327,15 +323,15 @@ function drawAgents(distance, agentsVao, agentsBufferInfo, viewProjectionMatrix)
         u_diffuseLight: diffuseLight,
         u_specularLight: specularLight,
         u_ambientColor: ambientColor,
-        u_diffuseColor: diffuseColor,
+        u_diffuseColor: agent.color,
         u_specularColor: specularColor,
         u_shininess: shininess,
     };
-    
 
-      twgl.setUniforms(programInfo, uniforms);
-      twgl.drawBufferInfo(gl, agentsBufferInfo);
-  }
+    twgl.setUniforms(programInfo, uniforms);
+    twgl.drawBufferInfo(gl, agentsBufferInfo);
+}
+
 }
 
 
@@ -352,45 +348,42 @@ function drawAgents(distance, agentsVao, agentsBufferInfo, viewProjectionMatrix)
 function drawObstacles(distance, obstaclesVao, obstaclesBufferInfo, viewProjectionMatrix) {
   // Bind the vertex array object for obstacles
   gl.bindVertexArray(obstaclesVao);
-
+  
   // Iterate over the obstacles
   for (const obstacle of obstacles) {
-      // Create the obstacle's transformation matrix
-      const cube_trans = twgl.v3.create(...obstacle.position);
-      const cube_scale = twgl.v3.create(...obstacle.scale);
-
-      // Calculate the obstacle's matrix
-      obstacle.matrix = twgl.m4.translate(twgl.m4.identity(), cube_trans);
-      obstacle.matrix = twgl.m4.rotateX(obstacle.matrix, obstacle.rotation[0]);
-      obstacle.matrix = twgl.m4.rotateY(obstacle.matrix, obstacle.rotation[1]);
-      obstacle.matrix = twgl.m4.rotateZ(obstacle.matrix, obstacle.rotation[2]);
-      obstacle.matrix = twgl.m4.scale(obstacle.matrix, cube_scale);
-
-      // Set the uniforms for the obstacle
-      const uniforms = {
-          u_world: obstacle.matrix, // Cambiado de `object.matrix` a `obstacle.matrix`
-          u_worldInverseTransform: twgl.m4.transpose(twgl.m4.inverse(obstacle.matrix)),
-          u_worldViewProjection: twgl.m4.multiply(viewProjectionMatrix, obstacle.matrix),
-          u_lightWorldPosition: lightPosition,
-          u_ambientLight: ambientLight,
-          u_diffuseLight: diffuseLight,
-          u_specularLight: specularLight,
-          u_ambientColor: ambientColor,
-          u_diffuseColor: diffuseColor,
-          u_specularColor: specularColor,
-          u_shininess: shininess,
-      };
-
-      // Set the uniforms and draw the obstacle
-      twgl.setUniforms(programInfo, uniforms);
-      twgl.drawBufferInfo(gl, obstaclesBufferInfo);
+    const cube_trans = twgl.v3.create(...obstacle.position);
+    const cube_scale = twgl.v3.create(...obstacle.scale);
+  
+    obstacle.matrix = twgl.m4.translate(twgl.m4.identity(), cube_trans);
+    obstacle.matrix = twgl.m4.rotateX(obstacle.matrix, obstacle.rotation[0]);
+    obstacle.matrix = twgl.m4.rotateY(obstacle.matrix, obstacle.rotation[1]);
+    obstacle.matrix = twgl.m4.rotateZ(obstacle.matrix, obstacle.rotation[2]);
+    obstacle.matrix = twgl.m4.scale(obstacle.matrix, cube_scale);
+  
+    const uniforms = {
+      u_world: obstacle.matrix,
+      u_worldInverseTransform: twgl.m4.transpose(twgl.m4.inverse(obstacle.matrix)),
+      u_worldViewProjection: twgl.m4.multiply(viewProjectionMatrix, obstacle.matrix),
+      u_lightWorldPosition: lightPosition,
+      u_ambientLight: ambientLight,
+      u_diffuseLight: diffuseLight,
+      u_specularLight: specularLight,
+      u_ambientColor: ambientColor,
+      u_diffuseColor: obstacle.color, // Usa el color específico del obstáculo
+      u_specularColor: specularColor,
+      u_shininess: shininess,
+    };
+  
+    twgl.setUniforms(programInfo, uniforms);
+    twgl.drawBufferInfo(gl, obstaclesBufferInfo);
   }
+  
 }
 
 
 function drawDestinations(distance, destinationsVao, destinationsBufferInfo, viewProjectionMatrix) {
   gl.bindVertexArray(destinationsVao);
-
+    
   for (const destination of destinations) {
       const translation = twgl.v3.create(...destination.position);
       const scale = twgl.v3.create(...destination.scale);
@@ -410,7 +403,7 @@ function drawDestinations(distance, destinationsVao, destinationsBufferInfo, vie
         u_diffuseLight: diffuseLight,
         u_specularLight: specularLight,
         u_ambientColor: ambientColor,
-        u_diffuseColor: diffuseColor,
+        u_diffuseColor: destination.color,
         u_specularColor: specularColor,
         u_shininess: shininess,
     };
@@ -439,15 +432,13 @@ function setupWorldView(gl) {
 
   // Set the target position (scene center)
   const target = [data.width / 2, 0, data.height / 2];
-  console.log("Target Position (scene center):", target);
 
   // Set the up vector
   // const up = [0, 1, 0];
-  const up = [0, 0, -1]; // La dirección hacia arriba es -Z, para mirar desde arriba
+  const up = [0, 0, -1];
 
   // Calculate the camera position and convert it to an array
   const camPos = [cameraPosition.x + target[0], cameraPosition.y, cameraPosition.z + target[2]];
-  console.log("Camera Position:", camPos); // Ahora mostrará un arreglo válido
 
   // Create the camera matrix
   const cameraMatrix = twgl.m4.lookAt(camPos, target, up);
@@ -459,7 +450,6 @@ function setupWorldView(gl) {
   const viewProjectionMatrix = twgl.m4.multiply(projectionMatrix, viewMatrix);
 
   // Log the full view-projection matrix
-  console.log("View-Projection Matrix:", Array.from(viewProjectionMatrix));
 
   // Return the matrix for further use
   return viewProjectionMatrix;
