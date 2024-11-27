@@ -97,13 +97,12 @@ def getDestinations():
 @app.route('/update', methods=['GET'])
 @cross_origin()
 def updateModel():
-    global currentStep, cityModel
+    global cityModel
     if request.method == 'GET':
         try:
         # Update the model and return a message to WebGL saying that the model was updated successfully
             cityModel.step()
-            currentStep += 1
-            return jsonify({'message':f'Model updated to step {currentStep}.', 'currentStep':currentStep})
+            return jsonify({'message':f'Model updated'})
         except Exception as e:
             print(e)
             return jsonify({"message":"Error during step."}), 500
