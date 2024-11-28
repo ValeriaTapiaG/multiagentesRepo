@@ -92,24 +92,6 @@ def getDestinations():
             print(e)
             return jsonify({"message": "Error with destination positions"}), 500
 
-@app.route('/getRoads', methods=['GET'])
-@cross_origin()
-def getRoads():
-    global cityModel
-
-    if request.method == 'GET':
-        try:
-            roadPositions = []
-            for content, (x, z) in cityModel.grid.coord_iter():
-                for agent in content:
-                    if isinstance(agent, Road):
-                        roadPositions.append({
-                            "id": str(agent.unique_id), "x": x, "y": 1, "z": z})
-            return jsonify({'positions': roadPositions})
-        except Exception as e:
-            print(e)
-            return jsonify({"message": "Error with road positions"}), 500
-
 @app.route('/getTraffic_Light', methods=['GET'])
 @cross_origin()
 def getTraffic_Light():
@@ -120,9 +102,10 @@ def getTraffic_Light():
             traffic_lightPositions = []
             for content, (x, z) in cityModel.grid.coord_iter():
                 for agent in content:
-                    if isinstance(agent, Road):
+                    if isinstance(agent, Traffic_Light):
+                        state = agent.state
                         traffic_lightPositions.append({
-                            "id": str(agent.unique_id), "x": x, "y": 1, "z": z})
+                            "id": str(agent.unique_id), "x": x, "y": 1, "z": z, "state": state})
             return jsonify({'positions': traffic_lightPositions})
         except Exception as e:
             print(e)

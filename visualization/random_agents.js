@@ -25,10 +25,10 @@ const agent_server_uri = "http://localhost:8585/";
 const agents = [];
 const obstacles = [];
 const destinations = [];
-const roads = [];
+const trafficLights = []; 
 
 // Initialize WebGL-related variables
-let gl, programInfo, agentArrays, obstacleArrays, destinationsArrays, roadsArrays, agentsBufferInfo, obstaclesBufferInfo, destinationsBufferInfo, roadsBufferInfo,  agentsVao, obstaclesVao, destinationsVao, roadsVao;
+let gl, programInfo, agentArrays, obstacleArrays, destinationsArrays, trafficLightsArrays, agentsBufferInfo, obstaclesBufferInfo, destinationsBufferInfo, trafficLightsBufferInfo,  agentsVao, obstaclesVao, destinationsVao, trafficLightsVao;
 
 // Define the camera position
 let cameraPosition = {x:0, y: 40, z: 0};
@@ -66,21 +66,21 @@ async function main() {
   agentArrays = await loadObj("./car.obj");
   obstacleArrays = await loadObj("./building.obj");
   destinationsArrays = await loadObj("./destination.obj");
-  roadsArrays = await loadObj("./road.obj");
+  trafficLightsArrays = await loadObj("./trafficlight.obj");
 
 
   // Create buffer information from the agent and obstacle data
   agentsBufferInfo = twgl.createBufferInfoFromArrays(gl, agentArrays);
   obstaclesBufferInfo = twgl.createBufferInfoFromArrays(gl, obstacleArrays);
   destinationsBufferInfo = twgl.createBufferInfoFromArrays(gl, destinationsArrays);
-  roadsBufferInfo = twgl.createBufferInfoFromArrays(gl, roadsArrays);
+  trafficLightsBufferInfo = twgl.createBufferInfoFromArrays(gl, trafficLightsArrays);
 
 
   // Create vertex array objects (VAOs) from the buffer information
   agentsVao = twgl.createVAOFromBufferInfo(gl, programInfo, agentsBufferInfo);
   obstaclesVao = twgl.createVAOFromBufferInfo(gl, programInfo, obstaclesBufferInfo);
   destinationsVao = twgl.createVAOFromBufferInfo(gl, programInfo, destinationsBufferInfo);
-  roadsVao = twgl.createVAOFromBufferInfo(gl, programInfo, roadsBufferInfo);
+  trafficLightsVao = twgl.createVAOFromBufferInfo(gl, programInfo, trafficLightsBufferInfo);
 
   // Set up the user interface
   await setupUI();
@@ -92,10 +92,10 @@ async function main() {
   await getAgents();
   await getObstacles();
   await getDestinations();
-  await getRoads();
+  await getTraffic_Light();
 
   // Draw the scene
-  await drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstaclesVao, obstaclesBufferInfo, destinationsVao, destinationsBufferInfo, roadsVao, roadsBufferInfo);
+  await drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstaclesVao, obstaclesBufferInfo, destinationsVao, destinationsBufferInfo, trafficLightsVao, trafficLightsBufferInfo);
 }
 
 /*
@@ -221,24 +221,41 @@ async function getDestinations() {
   }
 }
 
-async function getRoads() {
+function getTrafficLightColor(state) {
+  // Si el estado es verdadero (verde), devuelve verde, si es falso (rojo), devuelve rojo
+  return state ? [0.0, 1.0, 0.0, 1.0] : [1.0, 0.0, 0.0, 1.0]; // RGB para verde y rojo con alfa 1.0
+}
+
+async function getTraffic_Light() {
   try {
-    const response = await fetch(agent_server_uri + "getRoads");
+    const response = await fetch(agent_server_uri + "getTraffic_Light");
 
     if (response.ok) {
       const result = await response.json();
-      roads.length = 0; // Limpia el arreglo para evitar duplicados
+      trafficLights.length = 0; // Limpia el arreglo para evitar duplicados
 
-      for (const road of result.positions) {
-        const color = [0.5, 0.5, 0.5, 1.0]; // Gris oscuro
-        const newRoad = new Object3D(road.id, [road.x, road.y, road.z], [0, 0, 0], [1, 1, 1], color);
-        roads.push(newRoad);
+      for (const trafficLight of result.positions) {
+        // Obtener el color del semáforo basado en su estado
+        const color = getTrafficLightColor(trafficLight.state);
+
+        // Crear un nuevo Object3D para cada semáforo
+        const newtrafficLight = new Object3D(
+          trafficLight.id, // ID único
+          [trafficLight.x, trafficLight.y, trafficLight.z], // Posición
+          [0, 0, 0], // Rotación (puedes ajustarlo si es necesario)
+          [1, 1, 1], // Escala (ajustar si es necesario)
+          color // Color basado en el estado del semáforo
+        );
+
+        // Agregar el semáforo al arreglo de semáforos
+        trafficLights.push(newtrafficLight);
       }
     }
   } catch (error) {
-    console.log("Error fetching roads:", error);
+    console.log("Error fetching trafficLights:", error);
   }
 }
+
 
 /*
  * Updates the agent positions by sending a request to the agent server.
@@ -252,6 +269,7 @@ async function update() {
     if(response.ok){
       // Retrieve the updated agent positions
       await getAgents()
+      await getTraffic_Light()
       // Log a message indicating that the agents have been updated
       // console.log("Updated agents")
     }
@@ -262,7 +280,7 @@ async function update() {
   }
 }
 
-async function drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstaclesVao, obstaclesBufferInfo, destinationsVao, destinationsBufferInfo, roadsVao, roadsBufferInfo) {
+async function drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstaclesVao, obstaclesBufferInfo, destinationsVao, destinationsBufferInfo, trafficLightsVao, trafficLightsBufferInfo) {
     // Resize the canvas to match the display size
     twgl.resizeCanvasToDisplaySize(gl.canvas);
 
@@ -291,8 +309,8 @@ async function drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstacles
     drawObstacles(distance, obstaclesVao, obstaclesBufferInfo, viewProjectionMatrix)
     // Draw the obstacles
     drawDestinations(distance, destinationsVao, destinationsBufferInfo, viewProjectionMatrix)
-    // Draw the roads
-    drawDestinations(distance, roadsVao, roadsBufferInfo, viewProjectionMatrix)
+    // Draw the trafficLight
+    drawTrafficLights(distance, trafficLightsVao, trafficLightsBufferInfo, viewProjectionMatrix)
 
     // Increment the frame count
     frameCount++
@@ -304,7 +322,7 @@ async function drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstacles
     } 
 
     // Request the next frame
-    requestAnimationFrame(()=>drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstaclesVao, obstaclesBufferInfo, destinationsVao, destinationsBufferInfo, roadsVao, roadsBufferInfo))
+    requestAnimationFrame(()=>drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstaclesVao, obstaclesBufferInfo, destinationsVao, destinationsBufferInfo, trafficLightsVao, trafficLightsBufferInfo))
 }
 
 function drawAgents(distance, agentsVao, agentsBufferInfo, viewProjectionMatrix) {
@@ -408,37 +426,37 @@ function drawDestinations(distance, destinationsVao, destinationsBufferInfo, vie
   }
 }
 
-function drawRoads(distance, roadsVao, roadsBufferInfo, viewProjectionMatrix) {
-  // Bind the vertex array object for roads
-  gl.bindVertexArray(roadsVao);
+function drawTrafficLights(distance, trafficLightsVao, trafficLightsBufferInfo, viewProjectionMatrix) {
+  // Bind the vertex array object for trafficLights
+  gl.bindVertexArray(trafficLightsVao);
   
-  // Iterate over the road
-  for (const road of roads) {
-    const cube_trans = twgl.v3.create(...road.position);
-    const cube_scale = twgl.v3.create(...road.scale);
+  // Iterate over the trafficLights
+  for (const trafficLight of trafficLights) {
+    const cube_trans = twgl.v3.create(...trafficLight.position);
+    const cube_scale = twgl.v3.create(...trafficLight.scale);
   
-    road.matrix = twgl.m4.translate(twgl.m4.identity(), cube_trans);
-    road.matrix = twgl.m4.rotateX(road.matrix, road.rotation[0]);
-    road.matrix = twgl.m4.rotateY(road.matrix, road.rotation[1]);
-    road.matrix = twgl.m4.rotateZ(road.matrix, road.rotation[2]);
-    road.matrix = twgl.m4.scale(road.matrix, cube_scale);
+    trafficLight.matrix = twgl.m4.translate(twgl.m4.identity(), cube_trans);
+    trafficLight.matrix = twgl.m4.rotateX(trafficLight.matrix, trafficLight.rotation[0]);
+    trafficLight.matrix = twgl.m4.rotateY(trafficLight.matrix, trafficLight.rotation[1]);
+    trafficLight.matrix = twgl.m4.rotateZ(trafficLight.matrix, trafficLight.rotation[2]);
+    trafficLight.matrix = twgl.m4.scale(trafficLight.matrix, cube_scale);
   
     const uniforms = {
-      u_world: road.matrix,
-      u_worldInverseTransform: twgl.m4.transpose(twgl.m4.inverse(road.matrix)),
-      u_worldViewProjection: twgl.m4.multiply(viewProjectionMatrix, road.matrix),
+      u_world: trafficLight.matrix,
+      u_worldInverseTransform: twgl.m4.transpose(twgl.m4.inverse(trafficLight.matrix)),
+      u_worldViewProjection: twgl.m4.multiply(viewProjectionMatrix, trafficLight.matrix),
       u_lightWorldPosition: lightPosition,
       u_ambientLight: ambientLight,
       u_diffuseLight: diffuseLight,
       u_specularLight: specularLight,
       u_ambientColor: ambientColor,
-      u_diffuseColor: road.color,
+      u_diffuseColor: trafficLight.color,
       u_specularColor: specularColor,
       u_shininess: shininess,
     };
   
     twgl.setUniforms(programInfo, uniforms);
-    twgl.drawBufferInfo(gl, roadsBufferInfo);
+    twgl.drawBufferInfo(gl, trafficLightsBufferInfo);
   }
   
 }
@@ -582,7 +600,7 @@ async function setupUI() {
 
   // Render Scene After UI Updates
   gui.onChange(() => {
-      drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstaclesVao, obstaclesBufferInfo, destinationsVao, destinationsBufferInfo, roadsVao, roadsBufferInfo);
+      drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstaclesVao, obstaclesBufferInfo, destinationsVao, destinationsBufferInfo, trafficLightsVao, trafficLightsBufferInfo);
   });
 }
 
