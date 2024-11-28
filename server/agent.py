@@ -145,41 +145,122 @@ class Car(Agent):
 
 #############
 #########
-    @staticmethod
-    def validate_road_direction(current_road, next_road, posicion_actual, posicion_siguiente):
-        """
-            Validates the direction of the road based on the current and next positions.
-        """
-        # Check if there is no movement
-        if posicion_actual == posicion_siguiente:
-            print(f"No movement from {posicion_actual} to {posicion_siguiente}, forcing path recalculation.")
-            return False # No movement
+    # @staticmethod
+    # def validate_road_direction(current_road, next_road, posicion_actual, posicion_siguiente):
+    #     """
+    #         se utiliza para verificar si el movimiento de un agente 
+    #         (como un vehículo, una persona, o un robot) 
+    #         a lo largo de una carretera o camino está permitido según las restricciones de dirección de la carretera
 
-        def is_valid_direction(road, x, y, nx, ny):
-            directions = {
-                "Left": nx < x,
-                "Right": nx > x,
-                "Up": ny > y,
-                "Down": ny < y,
-                "Vertical": nx == x,
-                "Horizontal": ny == y
-            }
-            return directions.get(road.direction, True)
+    #         current_position: La posición actual del agente en el entorno.
+    #         next_position: La siguiente posición a la que el agente quiere moverse.
 
-        x, y = posicion_actual
-        nx, ny = posicion_siguiente
 
-        # Validate direction of the current road
-        if not is_valid_direction(current_road, x, y, nx, ny):
-            return False
+    #     """
+    #     # Check if there is no movement
+    #     if posicion_actual == posicion_siguiente:
+    #         print(f"No movement from {posicion_actual} to {posicion_siguiente}, forcing path recalculation.")
+    #         return False # No movement
+        
+    #     #calcula la dirección en la que el agente intenta moverse
 
-        # Validate direction of the next road only if next_road is not None
-        if next_road is not None and not is_valid_direction(next_road, x, y, nx, ny):
-            return False
+    #     def is_valid_direction(road, x, y, nx, ny):
+    #         directions = {
+    #             "Left": nx < x,
+    #             "Right": nx > x,
+    #             "Up": ny > y,
+    #             "Down": ny < y,
+    #             "Vertical": nx == x,
+    #             "Horizontal": ny == y
+    #         }
+    #         return directions.get(road.direction, True)
 
-        return True
+    #     x, y = posicion_actual
+    #     nx, ny = posicion_siguiente
+
+    #     # Validate direction of the current road
+    #     if not is_valid_direction(current_road, x, y, nx, ny):
+    #         return False
+
+    #     # Validate direction of the next road only if next_road is not None
+    #     if next_road is not None and not is_valid_direction(next_road, x, y, nx, ny):
+    #         return False
+
+    #     return True
+
+
 #########
 ########
+    # def es_camino_despejado(self, entorno, posicion_actual, posicion_siguiente):
+    #     """
+    #     Determina si el camino está despejado para moverse de posicion_actual a posicion_siguiente.
+        
+    #     Args:
+    #         entorno (Grid): El mapa o estructura que representa el entorno.
+    #         posicion_actual (tuple): Las coordenadas actuales del agente.
+    #         posicion_siguiente (tuple): Las coordenadas a las que el agente desea moverse.
+        
+    #     Returns:
+    #         bool: True si el camino está despejado, False en caso contrario.
+    #     """
+    #     # 1. Verificación de Obstáculos
+
+    #     print(f"Verificando si el camino está despejado de {posicion_actual} a {posicion_siguiente}")
+    #     contenido_siguiente = entorno.get_cell_list_contents([posicion_siguiente])
+    #     for agente in contenido_siguiente:
+    #         if isinstance(agente, Obstacle):
+    #             #print(f"Coche {self.unique_id}: Obstáculo encontrado en {posicion_siguiente}.")
+    #             return False
+    #     # 2. Verificación de Destinos No Permitidos
+    #     for agente in contenido_siguiente:
+    #         if isinstance(agente, Destination) and agente != self.destination:
+    #             #print(f"Coche {self.unique_id}: Destino no permitido en {posicion_siguiente}.")
+    #             return False
+        
+    #     #3 verificar la road direccion
+    #     #trayendo el road sobre el que está el agente 
+    #     current_road = next(filter(lambda obj: isinstance(obj, Road), self.model.grid.get_cell_list_contents([posicion_actual])), None)
+    #     next_road = next(filter(lambda obj: isinstance(obj, Road), self.model.grid.get_cell_list_contents([posicion_siguiente])), None)
+
+    #     if current_road:
+    #             return self.validate_road_direction(current_road, next_road, posicion_actual, posicion_siguiente)
+
+    #         # Path is clear if none of the above conditions are met
+    #     return True
+
+
+    #     # 3. Validación de Direcciones de Movimiento
+    #     # Obtener la dirección permitida desde la posición actual
+
+    #     # contenido_actual = entorno.get_cell_list_contents([posicion_actual])
+    #     # direccion_permitida = None
+
+    #     # for obj in contenido_actual:
+    #     #     if isinstance(obj, Road):
+    #     #         direccion_permitida = obj.direction
+    #     #         break
+
+    #     # if direccion_permitida:
+    #     #     dx = posicion_siguiente[0] - posicion_actual[0]
+    #     #     dy = posicion_siguiente[1] - posicion_actual[1]
+
+    #     #     # Determinar la dirección del movimiento
+    #     #     if dx < 0 and direccion_permitida not in ['Left', 'Any']:
+    #     #         # print(f"Coche {self.unique_id}: Movimiento a la izquierda no permitido desde {posicion_actual}.")
+    #     #         return False
+    #     #     elif dx > 0 and direccion_permitida not in ['Right', 'Any']:
+    #     #         # print(f"Coche {self.unique_id}: Movimiento a la derecha no permitido desde {posicion_actual}.")
+    #     #         return False
+    #     #     if dy < 0 and direccion_permitida not in ['Down', 'Any']:
+    #     #         # print(f"Coche {self.unique_id}: Movimiento hacia abajo no permitido desde {posicion_actual}.")
+    #     #         return False
+    #     #     elif dy > 0 and direccion_permitida not in ['Up', 'Any']:
+    #     #         # print(f"Coche {self.unique_id}: Movimiento hacia arriba no permitido desde {posicion_actual}.")
+    #     #         return False
+
+    #     # 4. Si pasa todas las verificaciones
+    #     print(f"Coche {self.unique_id}: Camino despejado de {posicion_actual} a {posicion_siguiente}")
+    #     return True
     def es_camino_despejado(self, entorno, posicion_actual, posicion_siguiente):
         """
         Determina si el camino está despejado para moverse de posicion_actual a posicion_siguiente.
@@ -193,67 +274,47 @@ class Car(Agent):
             bool: True si el camino está despejado, False en caso contrario.
         """
         # 1. Verificación de Obstáculos
-
         print(f"Verificando si el camino está despejado de {posicion_actual} a {posicion_siguiente}")
         contenido_siguiente = entorno.get_cell_list_contents([posicion_siguiente])
         for agente in contenido_siguiente:
             if isinstance(agente, Obstacle):
-                #print(f"Coche {self.unique_id}: Obstáculo encontrado en {posicion_siguiente}.")
-                return False
+                return False  # Obstáculo encontrado
+
         # 2. Verificación de Destinos No Permitidos
         for agente in contenido_siguiente:
             if isinstance(agente, Destination) and agente != self.destination:
-                #print(f"Coche {self.unique_id}: Destino no permitido en {posicion_siguiente}.")
-                return False
-            
+                return False  # Destino no permitido
+        
+        # 3. Verificación de Direcciones de la Carretera
+        # Trayendo la carretera sobre la que está el agente
         current_road = next(filter(lambda obj: isinstance(obj, Road), self.model.grid.get_cell_list_contents([posicion_actual])), None)
         next_road = next(filter(lambda obj: isinstance(obj, Road), self.model.grid.get_cell_list_contents([posicion_siguiente])), None)
 
         if current_road:
-                return self.validate_road_direction(current_road, next_road, posicion_actual, posicion_siguiente)
+            # Función interna para verificar si la dirección es válida
+            def is_valid_direction(road, x, y, nx, ny):
+                directions = {
+                    "Left": nx < x,
+                    "Right": nx > x,
+                    "Up": ny > y,
+                    "Down": ny < y,
+                    "Vertical": nx == x,
+                    "Horizontal": ny == y
+                }
+                return directions.get(road.direction, True)
 
-            # Path is clear if none of the above conditions are met
-        return True
+            x, y = posicion_actual
+            nx, ny = posicion_siguiente
 
-    
+            # Validar la dirección de la carretera actual
+            if not is_valid_direction(current_road, x, y, nx, ny):
+                return False
 
+            # Validar la dirección de la siguiente carretera solo si next_road no es None
+            if next_road is not None and not is_valid_direction(next_road, x, y, nx, ny):
+                return False
 
-
-
-
-        
-
-        # 3. Validación de Direcciones de Movimiento
-        # Obtener la dirección permitida desde la posición actual
-
-        # contenido_actual = entorno.get_cell_list_contents([posicion_actual])
-        # direccion_permitida = None
-
-        # for obj in contenido_actual:
-        #     if isinstance(obj, Road):
-        #         direccion_permitida = obj.direction
-        #         break
-
-        # if direccion_permitida:
-        #     dx = posicion_siguiente[0] - posicion_actual[0]
-        #     dy = posicion_siguiente[1] - posicion_actual[1]
-
-        #     # Determinar la dirección del movimiento
-        #     if dx < 0 and direccion_permitida not in ['Left', 'Any']:
-        #         # print(f"Coche {self.unique_id}: Movimiento a la izquierda no permitido desde {posicion_actual}.")
-        #         return False
-        #     elif dx > 0 and direccion_permitida not in ['Right', 'Any']:
-        #         # print(f"Coche {self.unique_id}: Movimiento a la derecha no permitido desde {posicion_actual}.")
-        #         return False
-        #     if dy < 0 and direccion_permitida not in ['Down', 'Any']:
-        #         # print(f"Coche {self.unique_id}: Movimiento hacia abajo no permitido desde {posicion_actual}.")
-        #         return False
-        #     elif dy > 0 and direccion_permitida not in ['Up', 'Any']:
-        #         # print(f"Coche {self.unique_id}: Movimiento hacia arriba no permitido desde {posicion_actual}.")
-        #         return False
-
-        # 4. Si pasa todas las verificaciones
-        print(f"Coche {self.unique_id}: Camino despejado de {posicion_actual} a {posicion_siguiente}")
+        # El camino está despejado si ninguna de las condiciones anteriores se cumple
         return True
 
 
@@ -263,14 +324,19 @@ class Car(Agent):
             self.model.schedule.remove(self)
             print(f"Car {self.unique_id} has reached its destination and has been removed.")
         else:
+
             next_move = self.path[0]
-            # Utilizar la función es_camino_despejado para verificar si puede moverse
-            if self.es_camino_despejado(self.model.grid, self.pos, next_move):
-                self.path.pop(0)
-                self.model.grid.move_agent(self, next_move)
-                print(f"Coche {self.unique_id} se movió a {next_move}.")
-            else:
-                print(f"Coche {self.unique_id} no puede moverse a {next_move}.")
+            #validar si es un semaforo y su estado
+            #traer los agentes que existen en una coordenada 
+            for agent in self.model.grid.get_cell_list_contents(next_move):
+                if isinstance(agent,Traffic_Light):
+                    if agent.state==False:
+                        return
+                elif isinstance(agent,Car):
+                    return
+            self.path.pop(0)
+            self.model.grid.move_agent(self, next_move)
+
 
     # def a_star_search(self, start, goal):
     #     """Perform A* search from start to goal on the model's grid."""
