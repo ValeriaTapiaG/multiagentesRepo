@@ -1,12 +1,12 @@
 # agentsServer.py
 
-from agent import *
+from agent import Car, Road, Traffic_Light, Destination, Obstacle  # Explicit imports
 from model import CityModel
 from mesa.visualization import CanvasGrid
 from mesa.visualization.ModularVisualization import ModularServer
 
 def agent_portrayal(agent):
-    # Define cómo se representa visualmente cada tipo de agente
+    # Define how each agent type is visually represented
     if agent is None:
         return
 
@@ -33,7 +33,7 @@ def agent_portrayal(agent):
 
     elif isinstance(agent, Traffic_Light):
         portrayal["Color"] = "red" if not agent.state else "green"
-        portrayal["Layer"] = 2  # Capa superior para que sea visible sobre los coches
+        portrayal["Layer"] = 2  # Upper layer to be visible above cars
         portrayal["w"] = 0.8
         portrayal["h"] = 0.8
 
@@ -48,39 +48,39 @@ def agent_portrayal(agent):
             "Shape": "rect",
             "Color": "pink",
             "Filled": True,
-            "Layer": 1,  # Capa superior para que esté encima de Road y otros agentes en Layer 0
+            "Layer": 1,  # Upper layer to be above Road and other agents on Layer 0
             "w": 0.8,
             "h": 0.8
         }
 
     return portrayal
 
-# Definir las dimensiones de la cuadrícula basadas en el archivo del mapa
+# Define grid dimensions based on the map file
 width = 0
 height = 0
 
-# Leer el archivo de mapa para obtener las dimensiones
-with open('city_files/2022_base.txt') as baseFile:
+# Read the map file to get dimensions
+with open('city_files/2024_base.txt') as baseFile:
     lines = baseFile.readlines()
     width = len(lines[0].strip())
     height = len(lines)
 
-# Definir los parámetros del modelo (N no se usa actualmente)
+# Define model parameters (N is not currently used)
 model_params = {"N": 5}
 
 print(width, height)
 grid = CanvasGrid(agent_portrayal, width, height, 500, 500)
 
-# Eliminar o comentar el ChartModule para evitar el error de datacollector
+# Remove or comment out the ChartModule to avoid datacollector errors
 # chart = ChartModule([{"Label": "Número de Coches", "Color": "Pink"}],
 #                     data_collector_name='datacollector')
 
 server = ModularServer(
     CityModel,
-    [grid],  # Remover 'chart' de la lista de módulos
+    [grid],  # Remove 'chart' from the list of modules
     "Traffic Base",
     model_params
 )
 
-server.port = 8521  # El puerto por defecto
+server.port = 8521  # Default port
 server.launch()
