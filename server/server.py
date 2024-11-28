@@ -4,13 +4,6 @@ from model import CityModel, Car, Traffic_Light, Destination, Obstacle, Road
 
 # Size of the board:
 cityModel = None
-# width = 0
-# height = 0
-
-# with open('city_files/2022_base.txt') as baseFile:
-#     lines = baseFile.readlines()
-#     width = len(lines[0])-1
-#     height = len(lines)
 
 # This application will be used to interact with WebGL
 app = Flask("Traffic example")
@@ -49,16 +42,17 @@ def getAgents():
         # Note that the positions are sent as a list of dictionaries, where each dictionary has the id and position of an agent.
         # The y coordinate is set to 1, since the agents are in a 3D world. The z coordinate corresponds to the row (y coordinate) of the grid in mesa.
         try:
-            agentPositions = [
-                {"id": str(a.unique_id), "x": x, "y":1, "z":z}
-                for a, (x, z) in cityModel.grid.coord_iter()
-                if isinstance(a, Car)
-            ]
-
-            return jsonify({'positions':agentPositions})
+            agentPositions = []
+            for content, (x, z) in cityModel.grid.coord_iter():
+                for agent in content: 
+                    if isinstance(agent, Car):
+                        agentPositions.append({"id": str(agent.unique_id), "x": x, "y": 1, "z": z})
+            return jsonify({'positions': agentPositions})
         except Exception as e:
             print(e)
-            return jsonify({"message":"Error with the agent positions"}), 500
+            return jsonify({"message": "Error with agent positions"}), 500
+
+
 
 # This route will be used to get the positions of the obstacles
 @app.route('/getObstacles', methods=['GET'])
@@ -79,18 +73,54 @@ def getObstacles():
         except Exception as e:
             print(e)
             return jsonify({"message":"Error with obstacle positions"}), 500
+        
+@app.route('/getDestinations', methods=['GET'])
+@cross_origin()
+def getDestinations():
+    global cityModel
 
+    if request.method == 'GET':
+        try:
+            destinationPositions = []
+            for content, (x, z) in cityModel.grid.coord_iter():
+                for agent in content:
+                    if isinstance(agent, Destination):
+                        destinationPositions.append({
+                            "id": str(agent.unique_id), "x": x, "y": 1, "z": z})
+            return jsonify({'positions': destinationPositions})
+        except Exception as e:
+            print(e)
+            return jsonify({"message": "Error with destination positions"}), 500
+
+@app.route('/getTraffic_Light', methods=['GET'])
+@cross_origin()
+def getTraffic_Light():
+    global cityModel
+
+    if request.method == 'GET':
+        try:
+            traffic_lightPositions = []
+            for content, (x, z) in cityModel.grid.coord_iter():
+                for agent in content:
+                    if isinstance(agent, Traffic_Light):
+                        state = agent.state
+                        traffic_lightPositions.append({
+                            "id": str(agent.unique_id), "x": x, "y": 1, "z": z, "state": state})
+            return jsonify({'positions': traffic_lightPositions})
+        except Exception as e:
+            print(e)
+            return jsonify({"message": "Error with traffic_light positions"}), 500
+        
 # This route will be used to update the model
 @app.route('/update', methods=['GET'])
 @cross_origin()
 def updateModel():
-    global currentStep, cityModel
+    global cityModel
     if request.method == 'GET':
         try:
         # Update the model and return a message to WebGL saying that the model was updated successfully
             cityModel.step()
-            currentStep += 1
-            return jsonify({'message':f'Model updated to step {currentStep}.', 'currentStep':currentStep})
+            return jsonify({'message':f'Model updated'})
         except Exception as e:
             print(e)
             return jsonify({"message":"Error during step."}), 500
