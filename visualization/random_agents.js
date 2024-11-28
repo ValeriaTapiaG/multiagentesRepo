@@ -128,7 +128,7 @@ async function main() {
   trafficLightsVao = twgl.createVAOFromBufferInfo(gl, programInfo, trafficLightsBufferInfo);
 
   // Set up the user interface
-  await setupUI();
+  // await setupUI();
 
   // Initialize the agents model
   await initAgentsModel();
