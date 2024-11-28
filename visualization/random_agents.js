@@ -239,7 +239,7 @@ async function getObstacles() {
       obstacles.length = 0; // Limpia el arreglo para evitar duplicados
 
       for (const obstacle of result.positions) {
-        const color = [0.5, 0.5, 0.5, 1.0]; // Gris oscuro
+        const color = [0.96, 0.96, 0.86, 1.0]; // Beige (F5F5DC)
         const newObstacle = new Object3D(obstacle.id, [obstacle.x, obstacle.y, obstacle.z], [0, 0, 0], [1, 1, 1], color);
         obstacles.push(newObstacle);
       }
@@ -260,7 +260,7 @@ async function getDestinations() {
       destinations.length = 0; // Limpia el arreglo para evitar duplicados
 
       for (const destination of result.positions) {
-        const color = [0.0, 0.0, 1.0, 1.0]; // Azul claro
+        const color = [1.0, 0.71, 0.76, 1.0]; // Rosa claro
         const newDestination = new Object3D(destination.id, [destination.x, destination.y, destination.z], [0, 0, 0], [1, 1, 1], color);
         destinations.push(newDestination);
       }
@@ -565,16 +565,16 @@ async function setupUI() {
   const gui = new GUI();
 
   // Camera Position Controls
-  const posFolder = gui.addFolder('Camera Position');
-  posFolder.add(cameraPosition, 'x', -50, 50).onChange(value => {
-      cameraPosition.x = value;
-  });
-  posFolder.add(cameraPosition, 'y', -50, 50).onChange(value => {
-      cameraPosition.y = value;
-  });
-  posFolder.add(cameraPosition, 'z', -50, 50).onChange(value => {
-      cameraPosition.z = value;
-  });
+  // const posFolder = gui.addFolder('Camera Position');
+  // posFolder.add(cameraPosition, 'x', -50, 50).onChange(value => {
+  //     cameraPosition.x = value;
+  // });
+  // posFolder.add(cameraPosition, 'y', -50, 50).onChange(value => {
+  //     cameraPosition.y = value;
+  // });
+  // posFolder.add(cameraPosition, 'z', -50, 50).onChange(value => {
+  //     cameraPosition.z = value;
+  // });
 
   // // Light Controls
   // const lightFolder = gui.addFolder('Light Settings');
