@@ -120,7 +120,8 @@ def updateModel():
         try:
         # Update the model and return a message to WebGL saying that the model was updated successfully
             cityModel.step()
-            return jsonify({'message':f'Model updated'})
+            return jsonify({'message':f'Model updated',
+                            'total_arrived': cityModel.total_arrived})
         except Exception as e:
             print(e)
             return jsonify({"message":"Error during step."}), 500
