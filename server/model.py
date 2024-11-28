@@ -23,6 +23,7 @@ class CityModel(Model):
         dataDictionary = json.load(open("city_files/mapDictionary.json"))
 
         self.traffic_lights = []
+        self.total_arrived = 0
 
         # Load the map file. Each character represents an agent.
         with open('city_files/2024_base.txt') as baseFile:
@@ -31,6 +32,7 @@ class CityModel(Model):
             self.height = len(lines)
             self.grid = MultiGrid(self.width, self.height, torus=False)  # Grid without torus
             self.schedule = RandomActivation(self)  # Random agent activation
+            self.agentsArrived = 0
 
             # Iterate through each character in the map and create the corresponding agent.
             for r, row in enumerate(lines):
@@ -60,9 +62,9 @@ class CityModel(Model):
         # Define the coordinates of the four corners
         self.corners = [
             (0, 0),  # Bottom Left
-            # (self.width - 1, 0),  # Bottom Right
-            # (0, self.height - 1),  # Top Left
-            # (self.width - 1, self.height - 1)  # Top Right
+            (self.width - 1, 0),  # Bottom Right
+            (0, self.height - 1),  # Top Left
+            (self.width - 1, self.height - 1)  # Top Right
         ]
 
         # Initialize step counter
