@@ -9,6 +9,7 @@ in vec3 v_lightDirection;
  uniform vec4 u_ambientLight;
  uniform vec4 u_diffuseLight;
  uniform vec4 u_specularLight;
+ uniform vec4 u_emissiveColor;
 
 // Object material
  uniform vec4 u_ambientColor;
@@ -29,6 +30,13 @@ void main() {
     float lambert = dot(normalVector, lightVector);
     vec4 diffuse = vec4(0, 0, 0, 1);
 
+    vec3 color = u_diffuseColor.rgb; // Color base
+
+    // Si el semáforo está encendido (verde o rojo), sumamos el color de emisión
+    color += u_emissiveColor.rgb;
+
+    outColor = vec4(color, 1.0);
+
     // Validate that the light is in front of the object
     if (lambert > 0.0){
         diffuse = u_diffuseLight * u_diffuseColor * lambert;
@@ -45,4 +53,6 @@ void main() {
         }
     
     outColor = ambient + diffuse + specular;
+
+
 }
