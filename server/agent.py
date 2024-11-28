@@ -44,7 +44,7 @@ class Traffic_Light(Agent):
         """
         if self.model.schedule.steps % self.timeToChange == 0:
             self.state = not self.state
-            print(f"Semáforo {self.unique_id} cambiado a {'verde' if self.state else 'rojo'}")
+            # print(f"Semáforo {self.unique_id} cambiado a {'verde' if self.state else 'rojo'}")
 
 class Destination(Agent):
     """
@@ -82,7 +82,7 @@ class Car(Agent):
         """
         super().__init__(unique_id, model)
         self.assign_destination()
-        print()
+        # print()
         # print( "destinoooo", self.destination.get_position())
         self.path = self.a_star_search(pos, self.destination.pos)
         
@@ -91,13 +91,13 @@ class Car(Agent):
         destinations = [agent for agent in self.model.schedule.agents if isinstance(agent, Destination)]
         if destinations:
             self.destination = self.model.random.choice(destinations)
-            print(f"Coche {self.unique_id} asignado a destino {self.destination.pos}")
+            # print(f"Coche {self.unique_id} asignado a destino {self.destination.pos}")
         else:
             print("No hay destinos disponibles para asignar.")
     
     def step(self):
         """Move the car along its path."""
-        print(self.path)
+        # print(self.path)
         self.move()
 
     def heuristic(self, a, b):
@@ -109,18 +109,18 @@ class Car(Agent):
         neighbors = []
 
         current_next_cell_contents = self.model.grid.get_cell_list_contents([pos])
-        print(f"Contenido actual en {pos}: {current_next_cell_contents}")
+        # print(f"Contenido actual en {pos}: {current_next_cell_contents}")
 
         current_direction = None
 
         for obj in current_next_cell_contents:
             if isinstance(obj, Road):  
-                current_direction = obj.direction  
+                current_direction = obj.direction
         if current_direction:
             # Get all neighbors (Moore neighborhood)
             all_neighbors = self.model.grid.get_neighborhood(pos, moore=True, include_center=False)
-            print(f"Dirección permitida en {pos}: {current_direction}")
-            print(f"Todos los vecinos posibles: {all_neighbors}")
+            # print(f"Dirección permitida en {pos}: {current_direction}")
+            # print(f"Todos los vecinos posibles: {all_neighbors}")
 
             if current_direction == 'Left':
                 neighbors = [(nx, ny) for nx, ny in all_neighbors if nx < x]
@@ -140,7 +140,7 @@ class Car(Agent):
             # If the current cell does not contain a road, get all neighbors
             neighbors = self.model.grid.get_neighborhood(pos, moore=True, include_center=False)
 
-        print(f"Vecinos retornados desde {pos}: {neighbors}")
+        # print(f"Vecinos retornados desde {pos}: {neighbors}")
         return neighbors
 
 #############
@@ -274,11 +274,16 @@ class Car(Agent):
             bool: True si el camino está despejado, False en caso contrario.
         """
         # 1. Verificación de Obstáculos
-        print(f"Verificando si el camino está despejado de {posicion_actual} a {posicion_siguiente}")
+        # print(f"Verificando si el camino está despejado de {posicion_actual} a {posicion_siguiente}")
         contenido_siguiente = entorno.get_cell_list_contents([posicion_siguiente])
+        contenido_actual = entorno.get_cell_list_contents([posicion_actual])
         for agente in contenido_siguiente:
             if isinstance(agente, Obstacle):
                 return False  # Obstáculo encontrado
+            elif isinstance(agente, Traffic_Light):
+                print("Taffic Light: ", agente.pos)
+                print("posicion_actual: ", contenido_actual[0])
+                
 
         # 2. Verificación de Destinos No Permitidos
         for agente in contenido_siguiente:
@@ -289,6 +294,8 @@ class Car(Agent):
         # Trayendo la carretera sobre la que está el agente
         current_road = next(filter(lambda obj: isinstance(obj, Road), self.model.grid.get_cell_list_contents([posicion_actual])), None)
         next_road = next(filter(lambda obj: isinstance(obj, Road), self.model.grid.get_cell_list_contents([posicion_siguiente])), None)
+
+
 
         if current_road:
             # Función interna para verificar si la dirección es válida
@@ -322,16 +329,21 @@ class Car(Agent):
         if not self.path:
             self.model.grid.remove_agent(self)
             self.model.schedule.remove(self)
-            print(f"Car {self.unique_id} has reached its destination and has been removed.")
+            # print(f"Car {self.unique_id} has reached its destination and has been removed.")
         else:
 
             next_move = self.path[0]
             #validar si es un semaforo y su estado
             #traer los agentes que existen en una coordenada 
+            current_cell_agents = self.model.grid.get_cell_list_contents(self.pos)
+            is_on_traffic_light = any(isinstance(agent, Traffic_Light) for agent in current_cell_agents)
+            # if is_on_traffic_light:
+
             for agent in self.model.grid.get_cell_list_contents(next_move):
                 if isinstance(agent,Traffic_Light):
                     if agent.state==False:
                         return
+
                 elif isinstance(agent,Car):
                     return
             self.path.pop(0)
@@ -378,7 +390,7 @@ class Car(Agent):
 
 
     def a_star_search(self, start, goal):
-        print(f"Inicio A* desde {start} hasta {goal}")
+        # print(f"Inicio A* desde {start} hasta {goal}")
         open_set = []
         heapq.heappush(open_set, (0, start))
         came_from = {}
@@ -387,25 +399,25 @@ class Car(Agent):
 
         while open_set:
             current = heapq.heappop(open_set)[1]
-            print(f"Explorando {current}")
+            # print(f"Explorando {current}")
 
             if current == goal:
-                print("dentro del iffff")
+                # print("dentro del iffff")
                 # Reconstruct path
                 path = []
                 while current in came_from:
                     path.append(current)
                     current = came_from[current]
                 path.reverse()
-                print('Goal reached')
+                # print('Goal reached')
                 return path  # List of positions from start to goal
 
             for neighbor in self.get_neighbors(current):
                 if not self.es_camino_despejado(self.model.grid, current, neighbor):
-                    print(f"Camino bloqueado de {current} a {neighbor}")
+                    # print(f"Camino bloqueado de {current} a {neighbor}")
                     continue
 
-                print('Path clear:', current, '->', neighbor)
+                # print('Path clear:', current, '->', neighbor)
                 tentative_g_score = g_score[current] + 1  # Assuming cost=1 for movement
                 if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
                     came_from[neighbor] = current
@@ -413,7 +425,7 @@ class Car(Agent):
                     f_score_neighbor = tentative_g_score + self.heuristic(neighbor, goal)
                     f_score[neighbor] = f_score_neighbor
                     heapq.heappush(open_set, (f_score_neighbor, neighbor))
-                    print(f"Añadido a open_set: {neighbor} con f_score={f_score_neighbor}")
+                    # print(f"Añadido a open_set: {neighbor} con f_score={f_score_neighbor}")
 
-        print("No se encontró un camino al objetivo.")
+        # print("No se encontró un camino al objetivo.")
         return []  # No path found

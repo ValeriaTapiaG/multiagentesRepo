@@ -48,7 +48,7 @@ def agent_portrayal(agent):
             "Shape": "rect",
             "Color": "pink",
             "Filled": True,
-            "Layer": 1,  # Upper layer to be above Road and other agents on Layer 0
+            "Layer": 3,  # Upper layer to be above Road and other agents on Layer 0
             "w": 0.8,
             "h": 0.8
         }
