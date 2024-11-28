@@ -15,7 +15,53 @@ class Object3D {
     this.scale = scale;
     this.color = color;
     this.matrix = twgl.m4.create();
+
+ // Inicializar posición anterior para calcular la dirección
+ this.previousPosition = [...position];
+}
+
+// Método para actualizar la posición y calcular la rotación
+updatePosition(newPosition) {
+  const direction = this.calculateDirection(newPosition);
+  this.rotation[1] = direction;  // Cambiar a rotación sobre el eje Y (horizontal)
+  this.position = newPosition;   // Actualizar la posición
+  this.updateMatrix();  // Actualizar la matriz con la nueva rotación
+}
+
+// Método para calcular la dirección (ángulo de rotación) basado en el movimiento
+calculateDirection(newPosition) {
+  const dx = newPosition[0] - this.previousPosition[0];
+  const dz = newPosition[2] - this.previousPosition[2];
+
+  // Calcular el ángulo usando atan2 para obtener la dirección en radianes
+  const angle = Math.atan2(dz, dx);  // atan2 devuelve el ángulo en radianes
+
+  // Normalizar el ángulo en el rango -π a π
+  const normalizedAngle = this.normalizeAngle(angle);
+
+  // Actualizar la posición anterior
+  this.previousPosition = [...newPosition];
+
+  return normalizedAngle;
+}
+
+// Función para normalizar el ángulo dentro del rango -π a π
+normalizeAngle(angle) {
+  if (angle > Math.PI) {
+    return angle - 2 * Math.PI;
+  } else if (angle < -Math.PI) {
+    return angle + 2 * Math.PI;
   }
+  return angle;
+}
+
+// Actualizar la matriz con la nueva rotación
+updateMatrix() {
+  this.matrix = twgl.m4.identity(); // Resetear la matriz
+  this.matrix = twgl.m4.translate(this.matrix, this.position); // Aplicar la posición
+  this.matrix = twgl.m4.rotateY(this.matrix, this.rotation[1]); // Rotación sobre el eje Y (horizontal)
+  this.matrix = twgl.m4.scale(this.matrix, this.scale); // Aplicar el escalado
+}
 }
 
 // Define the agent server URI
@@ -52,7 +98,6 @@ const ambientColor = [0.5, 0.5, 0.5, 1.0]; // vec4
 const diffuseColor = [0.8, 0.0, 0.0, 1.0]; // vec4
 const specularColor = [1.0, 1.0, 1.0, 1.0]; // vec4
 const shininess = 32.0; // Sigue siendo float
-
 
 // Main function to initialize and run the application
 async function main() {
@@ -98,6 +143,8 @@ async function main() {
   await drawScene(gl, programInfo, agentsVao, agentsBufferInfo, obstaclesVao, obstaclesBufferInfo, destinationsVao, destinationsBufferInfo, trafficLightsVao, trafficLightsBufferInfo);
 }
 
+
+
 /*
  * Initializes the agents model by sending a POST request to the agent server.
  */
@@ -138,9 +185,6 @@ async function getAgents() {
       // Parse the response as JSON
       let result = await response.json();
 
-      // Log the agent positions
-      // console.log(result.positions);
-
       // Check if the agents array is empty
       if (agents.length === 0) {
         // Create new agents and add them to the agents array
@@ -149,9 +193,6 @@ async function getAgents() {
           const newAgent = new Object3D(agent.id, [agent.x, agent.y, agent.z], [0, 0, 0], [0.5, 0.5, 0.5], color);
           agents.push(newAgent);
         }
-        // Log the agents array
-        // console.log("Agents:", agents);
-
       } else {
         // Update the positions of existing agents
         for (const agent of result.positions) {
@@ -160,7 +201,11 @@ async function getAgents() {
           // Check if the agent exists in the agents array
           if (current_agent !== undefined) {
             // Update the agent's position
-            current_agent.position = [agent.x, agent.y, agent.z];
+            const newPosition = [agent.x, agent.y, agent.z];
+            current_agent.position = newPosition;
+
+            // Calculate direction and update rotation
+            current_agent.updatePosition(newPosition); // Update rotation based on movement
           } else {
             // Si es un nuevo agente, añadirlo con color
             const color = [Math.random(), Math.random(), Math.random(), 1.0]; // Color aleatorio
@@ -171,11 +216,14 @@ async function getAgents() {
       }
     }
 
+    
   } catch (error) {
     // Log any errors that occur during the request
     console.log("Error fetching agents:", error);
   }
 }
+
+            const color = [Math.random(), Math.random(), Math.random(), 1.0]; // Color aleatorio
 
 /*
  * Retrieves the current positions of all obstacles from the agent server.
@@ -518,85 +566,85 @@ async function setupUI() {
       cameraPosition.z = value;
   });
 
-  // Light Controls
-  const lightFolder = gui.addFolder('Light Settings');
-  lightFolder.add(lightPosition, 0, -50, 50).name('Light X').onChange(value => {
-      lightPosition[0] = value;
-  });
-  lightFolder.add(lightPosition, 1, -50, 50).name('Light Y').onChange(value => {
-      lightPosition[1] = value;
-  });
-  lightFolder.add(lightPosition, 2, -50, 50).name('Light Z').onChange(value => {
-      lightPosition[2] = value;
-  });
+  // // Light Controls
+  // const lightFolder = gui.addFolder('Light Settings');
+  // lightFolder.add(lightPosition, 0, -50, 50).name('Light X').onChange(value => {
+  //     lightPosition[0] = value;
+  // });
+  // lightFolder.add(lightPosition, 1, -50, 50).name('Light Y').onChange(value => {
+  //     lightPosition[1] = value;
+  // });
+  // lightFolder.add(lightPosition, 2, -50, 50).name('Light Z').onChange(value => {
+  //     lightPosition[2] = value;
+  // });
 
-  const ambientFolder = lightFolder.addFolder('Ambient Light');
-  ambientFolder.add(ambientLight, 0, 0, 1).name('R').onChange(value => {
-      ambientLight[0] = value;
-  });
-  ambientFolder.add(ambientLight, 1, 0, 1).name('G').onChange(value => {
-      ambientLight[1] = value;
-  });
-  ambientFolder.add(ambientLight, 2, 0, 1).name('B').onChange(value => {
-      ambientLight[2] = value;
-  });
+  // const ambientFolder = lightFolder.addFolder('Ambient Light');
+  // ambientFolder.add(ambientLight, 0, 0, 1).name('R').onChange(value => {
+  //     ambientLight[0] = value;
+  // });
+  // ambientFolder.add(ambientLight, 1, 0, 1).name('G').onChange(value => {
+  //     ambientLight[1] = value;
+  // });
+  // ambientFolder.add(ambientLight, 2, 0, 1).name('B').onChange(value => {
+  //     ambientLight[2] = value;
+  // });
 
-  const diffuseFolder = lightFolder.addFolder('Diffuse Light');
-  diffuseFolder.add(diffuseLight, 0, 0, 1).name('R').onChange(value => {
-      diffuseLight[0] = value;
-  });
-  diffuseFolder.add(diffuseLight, 1, 0, 1).name('G').onChange(value => {
-      diffuseLight[1] = value;
-  });
-  diffuseFolder.add(diffuseLight, 2, 0, 1).name('B').onChange(value => {
-      diffuseLight[2] = value;
-  });
+  // const diffuseFolder = lightFolder.addFolder('Diffuse Light');
+  // diffuseFolder.add(diffuseLight, 0, 0, 1).name('R').onChange(value => {
+  //     diffuseLight[0] = value;
+  // });
+  // diffuseFolder.add(diffuseLight, 1, 0, 1).name('G').onChange(value => {
+  //     diffuseLight[1] = value;
+  // });
+  // diffuseFolder.add(diffuseLight, 2, 0, 1).name('B').onChange(value => {
+  //     diffuseLight[2] = value;
+  // });
 
-  const specularFolder = lightFolder.addFolder('Specular Light');
-  specularFolder.add(specularLight, 0, 0, 1).name('R').onChange(value => {
-      specularLight[0] = value;
-  });
-  specularFolder.add(specularLight, 1, 0, 1).name('G').onChange(value => {
-      specularLight[1] = value;
-  });
-  specularFolder.add(specularLight, 2, 0, 1).name('B').onChange(value => {
-      specularLight[2] = value;
-  });
+  // const specularFolder = lightFolder.addFolder('Specular Light');
+  // specularFolder.add(specularLight, 0, 0, 1).name('R').onChange(value => {
+  //     specularLight[0] = value;
+  // });
+  // specularFolder.add(specularLight, 1, 0, 1).name('G').onChange(value => {
+  //     specularLight[1] = value;
+  // });
+  // specularFolder.add(specularLight, 2, 0, 1).name('B').onChange(value => {
+  //     specularLight[2] = value;
+  // });
 
-  // Material Colors
-  const colorFolder = gui.addFolder('Material Colors');
-  const ambientColorFolder = colorFolder.addFolder('Ambient Color');
-  ambientColorFolder.add(ambientColor, 0, 0, 1).name('R').onChange(value => {
-      ambientColor[0] = value;
-  });
-  ambientColorFolder.add(ambientColor, 1, 0, 1).name('G').onChange(value => {
-      ambientColor[1] = value;
-  });
-  ambientColorFolder.add(ambientColor, 2, 0, 1).name('B').onChange(value => {
-      ambientColor[2] = value;
-  });
+  // // Material Colors
+  // const colorFolder = gui.addFolder('Material Colors');
+  // const ambientColorFolder = colorFolder.addFolder('Ambient Color');
+  // ambientColorFolder.add(ambientColor, 0, 0, 1).name('R').onChange(value => {
+  //     ambientColor[0] = value;
+  // });
+  // ambientColorFolder.add(ambientColor, 1, 0, 1).name('G').onChange(value => {
+  //     ambientColor[1] = value;
+  // });
+  // ambientColorFolder.add(ambientColor, 2, 0, 1).name('B').onChange(value => {
+  //     ambientColor[2] = value;
+  // });
 
-  const diffuseColorFolder = colorFolder.addFolder('Diffuse Color');
-  diffuseColorFolder.add(diffuseColor, 0, 0, 1).name('R').onChange(value => {
-      diffuseColor[0] = value;
-  });
-  diffuseColorFolder.add(diffuseColor, 1, 0, 1).name('G').onChange(value => {
-      diffuseColor[1] = value;
-  });
-  diffuseColorFolder.add(diffuseColor, 2, 0, 1).name('B').onChange(value => {
-      diffuseColor[2] = value;
-  });
+  // const diffuseColorFolder = colorFolder.addFolder('Diffuse Color');
+  // diffuseColorFolder.add(diffuseColor, 0, 0, 1).name('R').onChange(value => {
+  //     diffuseColor[0] = value;
+  // });
+  // diffuseColorFolder.add(diffuseColor, 1, 0, 1).name('G').onChange(value => {
+  //     diffuseColor[1] = value;
+  // });
+  // diffuseColorFolder.add(diffuseColor, 2, 0, 1).name('B').onChange(value => {
+  //     diffuseColor[2] = value;
+  // });
 
-  const specularColorFolder = colorFolder.addFolder('Specular Color');
-  specularColorFolder.add(specularColor, 0, 0, 1).name('R').onChange(value => {
-      specularColor[0] = value;
-  });
-  specularColorFolder.add(specularColor, 1, 0, 1).name('G').onChange(value => {
-      specularColor[1] = value;
-  });
-  specularColorFolder.add(specularColor, 2, 0, 1).name('B').onChange(value => {
-      specularColor[2] = value;
-  });
+  // const specularColorFolder = colorFolder.addFolder('Specular Color');
+  // specularColorFolder.add(specularColor, 0, 0, 1).name('R').onChange(value => {
+  //     specularColor[0] = value;
+  // });
+  // specularColorFolder.add(specularColor, 1, 0, 1).name('G').onChange(value => {
+  //     specularColor[1] = value;
+  // });
+  // specularColorFolder.add(specularColor, 2, 0, 1).name('B').onChange(value => {
+  //     specularColor[2] = value;
+  // });
 
   // Render Scene After UI Updates
   gui.onChange(() => {

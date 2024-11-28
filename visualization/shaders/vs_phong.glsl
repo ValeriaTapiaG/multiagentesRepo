@@ -11,6 +11,8 @@ uniform mat4 u_world;
 uniform mat4 u_worldInverseTransform;
 uniform mat4 u_worldViewProjection;
 
+uniform vec4 u_emissiveColor;
+
 // Pass the transformed vectors to the fragment shader
 out vec3 v_normal;
 out vec3 v_cameraDirection;
