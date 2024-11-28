@@ -128,7 +128,7 @@ async function main() {
   trafficLightsVao = twgl.createVAOFromBufferInfo(gl, programInfo, trafficLightsBufferInfo);
 
   // Set up the user interface
-  // await setupUI();
+  // // await setupUI();
 
   // Initialize the agents model
   await initAgentsModel();
@@ -565,16 +565,16 @@ async function setupUI() {
   const gui = new GUI();
 
   // Camera Position Controls
-  // const posFolder = gui.addFolder('Camera Position');
-  // posFolder.add(cameraPosition, 'x', -50, 50).onChange(value => {
-  //     cameraPosition.x = value;
-  // });
-  // posFolder.add(cameraPosition, 'y', -50, 50).onChange(value => {
-  //     cameraPosition.y = value;
-  // });
-  // posFolder.add(cameraPosition, 'z', -50, 50).onChange(value => {
-  //     cameraPosition.z = value;
-  // });
+  const posFolder = gui.addFolder('Camera Position');
+  posFolder.add(cameraPosition, 'x', -50, 50).onChange(value => {
+      cameraPosition.x = value;
+  });
+  posFolder.add(cameraPosition, 'y', -50, 50).onChange(value => {
+      cameraPosition.y = value;
+  });
+  posFolder.add(cameraPosition, 'z', -50, 50).onChange(value => {
+      cameraPosition.z = value;
+  });
 
   // // Light Controls
   // const lightFolder = gui.addFolder('Light Settings');
