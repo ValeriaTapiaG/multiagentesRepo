@@ -184,15 +184,17 @@ async function getAgents() {
     if (response.ok) {
       // Parse the response as JSON
       let result = await response.json();
+      //  agents=[];
+      
 
       // Check if the agents array is empty
       if (agents.length === 0) {
         // Create new agents and add them to the agents array
-        for (const agent of result.positions) {
+        result.positions.forEach (agent => {
           const color = [0.0, 1.0, 0.0, 1.0]; // Verde claro para agentes
           const newAgent = new Object3D(agent.id, [agent.x, agent.y, agent.z], [0, 0, 0], [0.5, 0.5, 0.5], color);
           agents.push(newAgent);
-        }
+        })
       } else {
         // Update the positions of existing agents
         for (const agent of result.positions) {
@@ -311,7 +313,15 @@ async function getTraffic_Light() {
 async function update() {
   try {
     // Send a request to the agent server to update the agent positions
-    let response = await fetch(agent_server_uri + "update") 
+    let response = await fetch(agent_server_uri + "update")
+    let result = await response.json()
+    const arrivedP = document.querySelector("#arrived")
+    const currentP = document.querySelector("#current")
+    arrivedP.textContent= result.total_arrived
+    currentP.textContent= agents.length
+  
+
+    console.log(result) 
 
     // Check if the response was successful
     if(response.ok){
